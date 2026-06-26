@@ -12,6 +12,8 @@ A web and cli app that provides escalation advice for medical symptoms. Uses a h
     - Document what you want to actually build. Doesn't have to be perfect
         - Generate acceptance criteria to match 
     - Settle architectural concerns, e.g. hexagonal architecture ports and adapters, app api concerns
+    - Identify skills to be used
+        - This is important because LLM will sometimes go straight to building
     - NOTE: none of above should care about tech stack
 - Plumbing
     - settle on tech stack
