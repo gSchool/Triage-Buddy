@@ -13,6 +13,12 @@ from __future__ import annotations
 
 import os
 
+from triage_buddy.adapters.llm._retry import (
+    DEFAULT_ATTEMPTS,
+    DEFAULT_BASE_DELAY,
+    DEFAULT_TIMEOUT,
+    call_with_retries,
+)
 from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
@@ -41,10 +47,15 @@ class GroqProvider:
         model: str = DEFAULT_MODEL,
         api_key: str | None = None,
         temperature: float = 0.0,
+        timeout: float = DEFAULT_TIMEOUT,
+        max_attempts: int = DEFAULT_ATTEMPTS,
+        retry_base_delay: float = DEFAULT_BASE_DELAY,
         client: object | None = None,
     ) -> None:
         self._model = model
         self._temperature = temperature
+        self._max_attempts = max_attempts
+        self._retry_base_delay = retry_base_delay
 
         if client is not None:
             self._client = client
@@ -63,23 +74,39 @@ class GroqProvider:
             raise LLMError(
                 "GROQ_API_KEY is not set; export it or pass api_key= to use the Groq provider"
             )
-        self._client = Groq(api_key=key)
+        # max_retries=0: this adapter owns retries (via call_with_retries) so
+        # behavior is uniform across providers and not double-counted.
+        self._client = Groq(api_key=key, timeout=timeout, max_retries=0)
 
     def generate(self, request: LLMRequest) -> LLMResponse:
-        try:
-            completion = self._client.chat.completions.create(
-                model=self._model,
-                temperature=self._temperature,
-                # The core's system prompt already demands a JSON object; asking
-                # for JSON mode makes Llama hold to it more reliably.
-                response_format={"type": "json_object"},
-                messages=[
-                    {"role": "system", "content": request.system},
-                    {"role": "user", "content": request.user},
-                ],
-            )
-            text = completion.choices[0].message.content or ""
-        except Exception as exc:  # network, auth, rate limit, malformed response
-            raise LLMError(f"Groq request failed: {exc}") from exc
+        def attempt() -> LLMResponse:
+            try:
+                completion = self._client.chat.completions.create(
+                    model=self._model,
+                    temperature=self._temperature,
+                    # The core's system prompt already demands a JSON object;
+                    # JSON mode makes Llama hold to it more reliably.
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": request.system},
+                        {"role": "user", "content": request.user},
+                    ],
+                )
+                text = completion.choices[0].message.content or ""
+            except Exception as exc:  # network, auth, rate limit, timeout
+                raise LLMError(f"Groq request failed: {exc}") from exc
+            return LLMResponse(text=text)
 
-        return LLMResponse(text=text)
+        return call_with_retries(
+            attempt, attempts=self._max_attempts, base_delay=self._retry_base_delay
+        )
+
+    def check_health(self) -> None:
+        """Cheap reachability probe: list models (no token cost).
+
+        Raises ``LLMError`` if the provider is unreachable or unauthorized.
+        """
+        try:
+            next(iter(self._client.models.list()), None)
+        except Exception as exc:
+            raise LLMError(f"Groq health check failed: {exc}") from exc

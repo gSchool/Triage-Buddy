@@ -64,3 +64,7 @@ class MockLLMProvider:
             "advice": advice,
         }
         return LLMResponse(text=json.dumps(payload))
+
+    def check_health(self) -> None:
+        """Always healthy — the mock has no external dependency."""
+        return None
