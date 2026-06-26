@@ -4,7 +4,7 @@ Routes:
 - ``GET  /``        -> HTML form
 - ``POST /``        -> HTML form re-rendered with the assessment (urlencoded)
 - ``POST /triage``  -> JSON API (``{"description": ..., "age": ...}``)
-- ``GET  /healthz`` -> ``{"status": "ok"}``
+- ``GET  /healthz`` -> provider health: 200 when reachable, 503 otherwise
 
 This is presentation only. All triage logic lives in the core; all request
 validation/serialization lives in ``service.py``. The server just maps HTTP to
@@ -20,7 +20,11 @@ import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs
 
-from triage_buddy.adapters.web.service import run_triage
+from triage_buddy.adapters.web.service import (
+    DEFAULT_HEALTH_TTL,
+    ProviderHealthCache,
+    run_triage,
+)
 from triage_buddy.config import load_dotenv
 
 # Level name -> (badge background, text) for a quick visual read of urgency.
@@ -129,15 +133,23 @@ def _render_result(result: dict) -> str:
 # HTTP handler (transport)
 # --------------------------------------------------------------------------- #
 
-def make_handler(provider: str = "mock") -> type[BaseHTTPRequestHandler]:
-    """Build a request handler bound to a chosen LLM provider."""
+def make_handler(
+    provider: str = "mock", *, health_ttl: float = DEFAULT_HEALTH_TTL
+) -> type[BaseHTTPRequestHandler]:
+    """Build a request handler bound to a chosen LLM provider.
+
+    A single ``ProviderHealthCache`` is shared across all requests (captured in
+    the closure) so ``/healthz`` polls reuse a recent probe for ``health_ttl``s.
+    """
+    health_cache = ProviderHealthCache(ttl=health_ttl)
 
     class TriageHandler(BaseHTTPRequestHandler):
         server_version = "TriageBuddy/0.1"
 
         def do_GET(self) -> None:  # noqa: N802 (stdlib naming)
             if self.path == "/healthz":
-                self._send_json(200, {"status": "ok"})
+                status, data = health_cache.get(provider)
+                self._send_json(status, data)
             elif self.path in ("/", ""):
                 self._send_html(200, render_page(provider=provider))
             else:
@@ -239,9 +251,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1).")
     parser.add_argument("--port", type=int, default=8000, help="Bind port (default: 8000).")
     parser.add_argument("--provider", default="mock", help="LLM provider adapter (default: mock).")
+    parser.add_argument(
+        "--health-ttl",
+        type=float,
+        default=DEFAULT_HEALTH_TTL,
+        help=f"Seconds to cache /healthz probe results (default: {DEFAULT_HEALTH_TTL}).",
+    )
     args = parser.parse_args(argv)
 
-    httpd = ThreadingHTTPServer((args.host, args.port), make_handler(args.provider))
+    httpd = ThreadingHTTPServer(
+        (args.host, args.port), make_handler(args.provider, health_ttl=args.health_ttl)
+    )
     host, port = httpd.server_address[0], httpd.server_address[1]
     print(f"Triage Buddy serving on http://{host}:{port}  (provider: {args.provider}, Ctrl-C to stop)")
     try:

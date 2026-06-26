@@ -44,7 +44,9 @@ def test_get_root_serves_form(server):
 def test_healthz(server):
     status, body = _request(server, "GET", "/healthz")
     assert status == 200
-    assert json.loads(body) == {"status": "ok"}
+    data = json.loads(body)
+    assert data["status"] == "ok"
+    assert data["provider"] == "mock"
 
 
 def test_json_api_triage(server):
