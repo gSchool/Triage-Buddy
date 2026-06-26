@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import re
 
+from triage_buddy.domain.models import EscalationLevel
+
 # A constant disclaimer attached to every assessment. Triage Buddy is decision
 # support, not a diagnosis or a substitute for professional care.
 DISCLAIMER = (
@@ -51,3 +53,22 @@ def detect_red_flags(text: str) -> tuple[str, ...]:
         if pattern.search(text) and description not in found:
             found.append(description)
     return tuple(found)
+
+
+def severity_floor(text: str) -> tuple[EscalationLevel, tuple[str, ...]]:
+    """The deterministic *minimum* severity for a description, with reasons.
+
+    The core takes the more severe of this floor and the LLM's suggestion, so a
+    floor can only ever raise the result, never lower it.
+
+    Today this encodes a single rule: a recognized red flag floors the result at
+    ``EMERGENCY``. Intermediate floors (e.g. ``URGENT``/``PROMPT`` for specific
+    concerning-but-not-emergency phrases) are a deliberate extension point —
+    pending clinical review, add them here and the max-of-both logic honors them
+    automatically. Absent any rule, the floor is ``SELF_CARE`` (the minimum),
+    which imposes no constraint on the LLM.
+    """
+    red = detect_red_flags(text)
+    if red:
+        return EscalationLevel.EMERGENCY, red
+    return EscalationLevel.SELF_CARE, ()

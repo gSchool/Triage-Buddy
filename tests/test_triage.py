@@ -66,3 +66,40 @@ def test_end_to_end_with_mock_provider():
     service = TriageService(llm=MockLLMProvider())
     mild = service.assess(_report("mild runny nose"))
     assert mild.level is EscalationLevel.SELF_CARE
+
+
+# --- max-of-both-signals: an injected intermediate floor proves the mechanism --
+
+def _floor_urgent(_description):
+    return EscalationLevel.URGENT, ("test floor",)
+
+
+def test_floor_raises_under_calling_llm():
+    # LLM says PROMPT, floor says URGENT -> the more severe (URGENT) wins.
+    stub = StubProvider(json.dumps({"level": "PROMPT", "rationale": "r", "advice": "a"}))
+    assessment = TriageService(llm=stub, floor=_floor_urgent).assess(_report())
+    assert assessment.level is EscalationLevel.URGENT
+    assert assessment.source == "safety-override"
+    assert assessment.red_flags == ("test floor",)
+    assert stub.calls == 1  # the LLM was still consulted (floor below ceiling)
+
+
+def test_llm_above_floor_is_kept():
+    # LLM says EMERGENCY, floor says URGENT -> LLM (more severe) is used.
+    stub = StubProvider(json.dumps({"level": "EMERGENCY", "rationale": "r", "advice": "a"}))
+    assessment = TriageService(llm=stub, floor=_floor_urgent).assess(_report())
+    assert assessment.level is EscalationLevel.EMERGENCY
+    assert assessment.source == "llm"
+
+
+def test_llm_equal_to_floor_is_kept_as_llm():
+    stub = StubProvider(json.dumps({"level": "URGENT", "rationale": "r", "advice": "a"}))
+    assessment = TriageService(llm=stub, floor=_floor_urgent).assess(_report())
+    assert assessment.level is EscalationLevel.URGENT
+    assert assessment.source == "llm"
+
+
+def test_floor_applies_even_when_llm_fails():
+    # Provider fails; floor (URGENT) and fallback (URGENT) agree -> URGENT.
+    assessment = TriageService(llm=BoomProvider(), floor=_floor_urgent).assess(_report())
+    assert assessment.level is EscalationLevel.URGENT
