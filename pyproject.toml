@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "triage-buddy"
+version = "0.1.0"
+description = "Escalation advice for medical symptoms, behind a hexagonal core."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# Real LLM providers are optional extras; the core + mock slice needs none of them.
+anthropic = ["anthropic>=0.40"]
+groq = ["groq>=0.11"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+triage-buddy = "triage_buddy.adapters.cli.app:main"
+triage-buddy-web = "triage_buddy.adapters.web.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
