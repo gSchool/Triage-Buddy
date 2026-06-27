@@ -9,7 +9,7 @@ Triage Buddy is a web and CLI app that provides escalation advice for medical sy
 ## Tech stack
 
 - **Language:** Python (>=3.10), `src/` layout, packaged via `pyproject.toml` (setuptools).
-- **Core + first adapters:** standard library only — no third-party runtime dependency for the mock slice.
+- **Dependencies:** prefer the standard library for the core and the default (mock) slice, so a fresh clone runs offline with no installs. Third-party runtime deps are allowed when they earn their place (e.g. a real web framework, a parser with edge cases worth not owning) — they're a deliberate choice, not a banned one. Today the core + mock slice happen to be pure stdlib.
 - **Tests:** `pytest`.
 - **Virtual environment:** `.venv` in the repo root. Always use it (`.venv/bin/python`).
 - Real LLM SDKs are **optional extras** (e.g. `pip install -e ".[anthropic]"`), kept out of the core.
