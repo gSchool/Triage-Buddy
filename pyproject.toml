@@ -15,7 +15,10 @@ dependencies = []
 anthropic = ["anthropic>=0.40"]
 groq = ["groq>=0.11"]
 gemini = ["google-genai>=1.0"]
-dev = ["pytest>=7"]
+# The web adapter rides on FastAPI + Jinja2 templates; the CLI and core slice need none of it.
+web = ["fastapi>=0.110", "uvicorn>=0.27", "jinja2>=3.1"]
+# httpx2 is what Starlette's TestClient prefers; without it the suite warns and falls back to httpx.
+dev = ["pytest>=7", "fastapi>=0.110", "uvicorn>=0.27", "jinja2>=3.1", "httpx2>=2.5"]
 
 [project.scripts]
 triage-buddy = "triage_buddy.adapters.cli.app:main"
@@ -23,6 +26,10 @@ triage-buddy-web = "triage_buddy.adapters.web.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+# Ship the web adapter's Jinja2 templates inside the wheel.
+"triage_buddy.adapters.web" = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

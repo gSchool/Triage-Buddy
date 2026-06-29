@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Triage Buddy</title>
+<style>
+  :root { font-family: system-ui, sans-serif; line-height: 1.5; }
+  body { max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+  h1 { margin-bottom: .25rem; }
+  .sub { color: #666; margin-top: 0; }
+  form { display: grid; gap: .75rem; margin: 1.5rem 0; }
+  label { font-weight: 600; font-size: .9rem; }
+  textarea, input { width: 100%; padding: .5rem; font: inherit; box-sizing: border-box;
+                    border: 1px solid #ccc; border-radius: 6px; }
+  textarea { min-height: 5rem; resize: vertical; }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }
+  button { padding: .6rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
+           background: #2c3e50; color: #fff; border: 0; border-radius: 6px; }
+  .card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .card.error { border-color: #c0392b; background: #fdecea; }
+  .badge { display: inline-block; padding: .2rem .6rem; border-radius: 999px;
+           color: #fff; font-weight: 700; font-size: .85rem; }
+  .badge.PROMPT { color: #222; }
+  .flags { color: #c0392b; font-size: .9rem; }
+  .disclaimer { color: #666; font-size: .85rem; margin-top: 1rem; }
+  .meta { color: #999; font-size: .75rem; }
+</style>
+</head>
+<body>
+  <h1>Triage Buddy</h1>
+  <p class="sub">Describe your symptoms for escalation advice. Provider: <code>{{ provider }}</code></p>
+  <form method="post" action="/">
+    <div>
+      <label for="description">Symptoms</label>
+      <textarea id="description" name="description" required
+                placeholder="e.g. sore throat and mild fever for two days">{{ form.get('description', '') }}</textarea>
+    </div>
+    <div class="row">
+      <div><label for="age">Age</label><input id="age" name="age" inputmode="numeric" value="{{ form.get('age', '') }}"></div>
+      <div><label for="sex">Sex</label><input id="sex" name="sex" value="{{ form.get('sex', '') }}"></div>
+      <div><label for="duration">Duration</label><input id="duration" name="duration" value="{{ form.get('duration', '') }}"></div>
+    </div>
+    <button type="submit">Get advice</button>
+  </form>
+  {% if error %}
+  <div class="card error"><strong>Error:</strong> {{ error }}</div>
+  {% endif %}
+  {% if result %}
+  <div class="card">
+    <span class="badge {{ result.level }}" style="background:{{ colors.get(result.level, '#2c3e50') }}">{{ result.label | upper }}</span>
+    <p><strong>{{ result.action }}</strong></p>
+    <p><em>Why:</em> {{ result.rationale }}</p>
+    <p><em>What to do:</em> {{ result.advice }}</p>
+    {% if result.red_flags %}
+    <p class="flags">Flags: {{ result.red_flags | join(', ') }}</p>
+    {% endif %}
+    <p class="disclaimer">{{ result.disclaimer }}</p>
+    <p class="meta">source: {{ result.source }}</p>
+  </div>
+  {% endif %}
+</body>
+</html>

@@ -40,7 +40,8 @@ cp .env.example .env   # then put your GROQ_API_KEY in .env (git-ignored)
 .venv/bin/python -m pip install -e ".[gemini]"
 .venv/bin/triage-buddy --provider gemini "persistent cough and mild fever for three days"
 
-# Run the web server (browser form + JSON API)
+# Run the web server (FastAPI: browser form + JSON API; needs the [web] extra, included in [dev])
+.venv/bin/python -m pip install -e ".[web]"              # fastapi + uvicorn (skip if you installed [dev])
 .venv/bin/triage-buddy-web --port 8000 --provider groq   # default host 127.0.0.1, provider mock
 #   GET  /         browser form
 #   POST /triage   JSON API: {"description": "...", "age": 40, "sex": "...", "duration": "..."}
@@ -71,9 +72,10 @@ Keep domain/core logic free of framework, transport, and provider concerns; push
   - `llm/groq.py`: `GroqProvider` — Groq-hosted Llama (`llama-3.3-70b-versatile`), JSON mode, `temperature=0`. Per-request `timeout` on the client (SDK's own `max_retries=0` — this adapter owns retries). Optional `[groq]` extra; SDK imported lazily. API failures → `LLMError` (core fails safe).
   - `llm/gemini.py`: `GeminiProvider` — Google Gemini (`gemini-2.5-flash`) via `google-genai`, JSON mode, `temperature=0`. Per-request timeout via `HttpOptions(timeout=ms)`; retries via `_retry`. Optional `[gemini]` extra; SDK imported lazily. `GEMINI_API_KEY`. API failures → `LLMError`.
   - `cli/app.py`: CLI driving adapter (argparse). Presentation only.
-  - `web/`: web driving adapter on the stdlib `http.server` (no framework dep).
-    - `service.py`: transport-agnostic request handling — `run_triage(...)` (validate → assess → `(status, dict)`), `assessment_to_dict`, `provider_health(name)` (build + cheap probe → `(200|503, dict)`), and `ProviderHealthCache` (per-provider TTL cache, thread-safe, injectable clock). Shared by both web surfaces.
-    - `app.py`: HTTP handler + HTML rendering + server entry (`triage-buddy-web`, `--health-ttl`). Routes: `GET /` form, `POST /` form result, `POST /triage` JSON API, `GET /healthz` (cached provider health: 200 reachable / 503 misconfigured or unreachable). One health cache is shared across requests. User input is HTML-escaped; request body capped at 64 KiB.
+  - `web/`: web driving adapter built on **FastAPI** with **Jinja2** templates (the `[web]` extra: `fastapi` + `uvicorn` + `jinja2`, included in `[dev]`).
+    - `service.py`: transport-agnostic request handling — `run_triage(...)` (validate → assess → `(status, dict)`), `assessment_to_dict`, `provider_health(name)` (build + cheap probe → `(200|503, dict)`), and `ProviderHealthCache` (per-provider TTL cache, thread-safe, injectable clock). Pure stdlib; knows nothing about FastAPI. Shared by both web surfaces.
+    - `app.py`: `create_app(provider, *, health_ttl)` FastAPI app factory + `render_page(...)` (renders `templates/page.html` via a module-level autoescaping Jinja2 env) + server entry (`triage-buddy-web`, `--health-ttl`; serves via uvicorn, imported lazily in `main`). Routes: `GET /` form, `POST /` form result (raw urlencoded body, no `python-multipart` dep), `POST /triage` JSON API (raw body parsed by hand so a non-object/invalid body → 400, not FastAPI's 422), `GET /healthz` (cached provider health: 200 reachable / 503 misconfigured or unreachable). One health cache is shared across requests. User input is HTML-escaped (Jinja2 autoescape); request body capped at 64 KiB (→ 413).
+    - `templates/page.html`: the single Jinja2 page template (form + error card + result card + styles). Packaged via `[tool.setuptools.package-data]`.
 - **`src/triage_buddy/config.py`** — `load_dotenv()` (stdlib, no dep), called by adapter entry points.
 - **`src/triage_buddy/composition.py`** — composition root. The only place that picks concrete adapters (`build_service`/`build_provider`). Providers: `mock`, `groq`, `gemini`.
 

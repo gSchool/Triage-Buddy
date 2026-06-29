@@ -1,4 +1,4 @@
-"""Web adapter: a stdlib HTTP server exposing a browser form and a JSON API.
+"""Web adapter: a FastAPI app exposing a browser form and a JSON API.
 
 Routes:
 - ``GET  /``        -> HTML form
@@ -7,18 +7,21 @@ Routes:
 - ``GET  /healthz`` -> provider health: 200 when reachable, 503 otherwise
 
 This is presentation only. All triage logic lives in the core; all request
-validation/serialization lives in ``service.py``. The server just maps HTTP to
-those calls.
+validation/serialization lives in ``service.py``. The FastAPI app just maps HTTP
+to those calls. FastAPI/uvicorn live behind the ``[web]`` extra and are imported
+lazily, so the core + mock slice still installs and runs with no third-party deps.
 """
 
 from __future__ import annotations
 
 import argparse
-import html
 import json
-import sys
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from urllib.parse import parse_qs
+
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from triage_buddy.adapters.web.service import (
     DEFAULT_HEALTH_TTL,
@@ -27,7 +30,7 @@ from triage_buddy.adapters.web.service import (
 )
 from triage_buddy.config import load_dotenv
 
-# Level name -> (badge background, text) for a quick visual read of urgency.
+# Escalation level name -> badge background color, for a quick visual read of urgency.
 _LEVEL_COLORS = {
     "EMERGENCY": "#c0392b",
     "URGENT": "#e67e22",
@@ -37,6 +40,16 @@ _LEVEL_COLORS = {
 }
 
 _MAX_BODY_BYTES = 64 * 1024  # generous for a symptom description; rejects abuse
+
+# Jinja2 environment over the adapter's templates/ dir. Autoescape is on, so every
+# interpolated value (user input included) is HTML-escaped — the XSS guard.
+_TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+_jinja_env = Environment(
+    loader=FileSystemLoader(str(_TEMPLATES_DIR)),
+    autoescape=select_autoescape(["html"]),
+    trim_blocks=True,
+    lstrip_blocks=True,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -50,192 +63,105 @@ def render_page(
     error: str | None = None,
     provider: str = "mock",
 ) -> str:
-    """Render the full HTML page. All interpolated values are escaped."""
-    form = form or {}
-
-    def val(name: str) -> str:
-        return html.escape(form.get(name, ""))
-
-    blocks = ""
-    if error:
-        blocks += f'<div class="card error"><strong>Error:</strong> {html.escape(error)}</div>'
-    if result:
-        blocks += _render_result(result)
-
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Triage Buddy</title>
-<style>
-  :root {{ font-family: system-ui, sans-serif; line-height: 1.5; }}
-  body {{ max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #222; }}
-  h1 {{ margin-bottom: .25rem; }}
-  .sub {{ color: #666; margin-top: 0; }}
-  form {{ display: grid; gap: .75rem; margin: 1.5rem 0; }}
-  label {{ font-weight: 600; font-size: .9rem; }}
-  textarea, input {{ width: 100%; padding: .5rem; font: inherit; box-sizing: border-box;
-                     border: 1px solid #ccc; border-radius: 6px; }}
-  textarea {{ min-height: 5rem; resize: vertical; }}
-  .row {{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .75rem; }}
-  button {{ padding: .6rem 1rem; font: inherit; font-weight: 600; cursor: pointer;
-            background: #2c3e50; color: #fff; border: 0; border-radius: 6px; }}
-  .card {{ border: 1px solid #e0e0e0; border-radius: 8px; padding: 1rem; margin: 1rem 0; }}
-  .card.error {{ border-color: #c0392b; background: #fdecea; }}
-  .badge {{ display: inline-block; padding: .2rem .6rem; border-radius: 999px;
-            color: #fff; font-weight: 700; font-size: .85rem; }}
-  .badge.PROMPT {{ color: #222; }}
-  .flags {{ color: #c0392b; font-size: .9rem; }}
-  .disclaimer {{ color: #666; font-size: .85rem; margin-top: 1rem; }}
-  .meta {{ color: #999; font-size: .75rem; }}
-</style>
-</head>
-<body>
-  <h1>Triage Buddy</h1>
-  <p class="sub">Describe your symptoms for escalation advice. Provider: <code>{html.escape(provider)}</code></p>
-  <form method="post" action="/">
-    <div>
-      <label for="description">Symptoms</label>
-      <textarea id="description" name="description" required
-                placeholder="e.g. sore throat and mild fever for two days">{val("description")}</textarea>
-    </div>
-    <div class="row">
-      <div><label for="age">Age</label><input id="age" name="age" inputmode="numeric" value="{val("age")}"></div>
-      <div><label for="sex">Sex</label><input id="sex" name="sex" value="{val("sex")}"></div>
-      <div><label for="duration">Duration</label><input id="duration" name="duration" value="{val("duration")}"></div>
-    </div>
-    <button type="submit">Get advice</button>
-  </form>
-  {blocks}
-</body>
-</html>"""
-
-
-def _render_result(result: dict) -> str:
-    level = result["level"]
-    color = _LEVEL_COLORS.get(level, "#2c3e50")
-    flags = ""
-    if result.get("red_flags"):
-        flags = '<p class="flags">Flags: ' + html.escape(", ".join(result["red_flags"])) + "</p>"
-    return f"""<div class="card">
-  <span class="badge {html.escape(level)}" style="background:{color}">{html.escape(result["label"]).upper()}</span>
-  <p><strong>{html.escape(result["action"])}</strong></p>
-  <p><em>Why:</em> {html.escape(result["rationale"])}</p>
-  <p><em>What to do:</em> {html.escape(result["advice"])}</p>
-  {flags}
-  <p class="disclaimer">{html.escape(result["disclaimer"])}</p>
-  <p class="meta">source: {html.escape(result["source"])}</p>
-</div>"""
+    """Render the full HTML page from ``templates/page.html`` (autoescaped)."""
+    return _jinja_env.get_template("page.html").render(
+        form=form or {},
+        result=result,
+        error=error,
+        provider=provider,
+        colors=_LEVEL_COLORS,
+    )
 
 
 # --------------------------------------------------------------------------- #
-# HTTP handler (transport)
+# FastAPI app (transport)
 # --------------------------------------------------------------------------- #
 
-def make_handler(
-    provider: str = "mock", *, health_ttl: float = DEFAULT_HEALTH_TTL
-) -> type[BaseHTTPRequestHandler]:
-    """Build a request handler bound to a chosen LLM provider.
+def create_app(provider: str = "mock", *, health_ttl: float = DEFAULT_HEALTH_TTL):
+    """Build a FastAPI app bound to a chosen LLM provider.
 
     A single ``ProviderHealthCache`` is shared across all requests (captured in
     the closure) so ``/healthz`` polls reuse a recent probe for ``health_ttl``s.
     """
+    app = FastAPI(title="Triage Buddy", version="0.1.0")
     health_cache = ProviderHealthCache(ttl=health_ttl)
 
-    class TriageHandler(BaseHTTPRequestHandler):
-        server_version = "TriageBuddy/0.1"
+    async def _read_capped_body(request: Request) -> bytes | None:
+        """Read the request body, or return ``None`` if it exceeds the cap.
 
-        def do_GET(self) -> None:  # noqa: N802 (stdlib naming)
-            if self.path == "/healthz":
-                status, data = health_cache.get(provider)
-                self._send_json(status, data)
-            elif self.path in ("/", ""):
-                self._send_html(200, render_page(provider=provider))
-            else:
-                self._send_json(404, {"error": "not found"})
+        Mirrors the old stdlib handler: a generous limit for a symptom
+        description that still rejects abusive payloads.
+        """
+        try:
+            length = int(request.headers.get("content-length", 0))
+        except ValueError:
+            length = 0
+        if length > _MAX_BODY_BYTES:
+            return None
+        body = await request.body()
+        if len(body) > _MAX_BODY_BYTES:
+            return None
+        return body
 
-        def do_POST(self) -> None:  # noqa: N802
-            body = self._read_body()
-            if body is None:
-                return  # error already sent
+    @app.get("/", response_class=HTMLResponse)
+    async def index() -> str:
+        return render_page(provider=provider)
 
-            if self.path == "/triage":
-                self._handle_json_api(body)
-            elif self.path in ("/", ""):
-                self._handle_form(body)
-            else:
-                self._send_json(404, {"error": "not found"})
-
-        # -- route bodies ---------------------------------------------------- #
-
-        def _handle_json_api(self, body: bytes) -> None:
-            try:
-                payload = json.loads(body or b"{}")
-                if not isinstance(payload, dict):
-                    raise ValueError
-            except (json.JSONDecodeError, ValueError):
-                self._send_json(400, {"error": "request body must be a JSON object"})
-                return
-            status, data = run_triage(
-                description=payload.get("description"),
-                age=payload.get("age"),
-                sex=payload.get("sex"),
-                duration=payload.get("duration"),
-                provider=provider,
+    @app.post("/", response_class=HTMLResponse)
+    async def submit_form(request: Request) -> HTMLResponse:
+        body = await _read_capped_body(request)
+        if body is None:
+            return HTMLResponse(
+                render_page(error="request too large", provider=provider),
+                status_code=413,
             )
-            self._send_json(status, data)
+        fields = parse_qs(body.decode("utf-8", "replace"))
 
-        def _handle_form(self, body: bytes) -> None:
-            fields = parse_qs(body.decode("utf-8", "replace"))
+        def first(name: str) -> str:
+            return fields.get(name, [""])[0]
 
-            def first(name: str) -> str:
-                return fields.get(name, [""])[0]
+        form = {k: first(k) for k in ("description", "age", "sex", "duration")}
+        status, data = run_triage(
+            description=form["description"],
+            age=form["age"],
+            sex=form["sex"],
+            duration=form["duration"],
+            provider=provider,
+        )
+        if status == 200:
+            page = render_page(form=form, result=data, provider=provider)
+        else:
+            page = render_page(form=form, error=data.get("error"), provider=provider)
+        return HTMLResponse(page, status_code=status)
 
-            form = {k: first(k) for k in ("description", "age", "sex", "duration")}
-            status, data = run_triage(
-                description=form["description"],
-                age=form["age"],
-                sex=form["sex"],
-                duration=form["duration"],
-                provider=provider,
+    @app.post("/triage")
+    async def triage_api(request: Request) -> JSONResponse:
+        body = await _read_capped_body(request)
+        if body is None:
+            return JSONResponse({"error": "request too large"}, status_code=413)
+        try:
+            payload = json.loads(body or b"{}")
+            if not isinstance(payload, dict):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            return JSONResponse(
+                {"error": "request body must be a JSON object"}, status_code=400
             )
-            if status == 200:
-                page = render_page(form=form, result=data, provider=provider)
-            else:
-                page = render_page(form=form, error=data.get("error"), provider=provider)
-            self._send_html(status, page)
+        status, data = run_triage(
+            description=payload.get("description"),
+            age=payload.get("age"),
+            sex=payload.get("sex"),
+            duration=payload.get("duration"),
+            provider=provider,
+        )
+        return JSONResponse(data, status_code=status)
 
-        # -- helpers --------------------------------------------------------- #
+    @app.get("/healthz")
+    async def healthz() -> JSONResponse:
+        status, data = health_cache.get(provider)
+        return JSONResponse(data, status_code=status)
 
-        def _read_body(self) -> bytes | None:
-            try:
-                length = int(self.headers.get("Content-Length", 0))
-            except ValueError:
-                self._send_json(400, {"error": "invalid Content-Length"})
-                return None
-            if length > _MAX_BODY_BYTES:
-                self._send_json(413, {"error": "request too large"})
-                return None
-            return self.rfile.read(length) if length > 0 else b""
-
-        def _send_json(self, status: int, data: dict) -> None:
-            self._send(status, "application/json", json.dumps(data).encode("utf-8"))
-
-        def _send_html(self, status: int, page: str) -> None:
-            self._send(status, "text/html; charset=utf-8", page.encode("utf-8"))
-
-        def _send(self, status: int, content_type: str, body: bytes) -> None:
-            self.send_response(status)
-            self.send_header("Content-Type", content_type)
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-
-        def log_message(self, *args) -> None:  # silence default stderr logging
-            pass
-
-    return TriageHandler
+    return app
 
 
 # --------------------------------------------------------------------------- #
@@ -259,17 +185,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    httpd = ThreadingHTTPServer(
-        (args.host, args.port), make_handler(args.provider, health_ttl=args.health_ttl)
+    import uvicorn
+
+    app = create_app(args.provider, health_ttl=args.health_ttl)
+    print(
+        f"Triage Buddy serving on http://{args.host}:{args.port}  "
+        f"(provider: {args.provider}, Ctrl-C to stop)"
     )
-    host, port = httpd.server_address[0], httpd.server_address[1]
-    print(f"Triage Buddy serving on http://{host}:{port}  (provider: {args.provider}, Ctrl-C to stop)")
-    try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nShutting down.")
-    finally:
-        httpd.server_close()
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
 

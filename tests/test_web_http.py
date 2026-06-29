@@ -1,86 +1,58 @@
-"""End-to-end HTTP tests: start the real server on an ephemeral port."""
-
-import json
-import threading
-from http.client import HTTPConnection
-from http.server import ThreadingHTTPServer
+"""End-to-end HTTP tests: drive the FastAPI app through Starlette's TestClient."""
 
 import pytest
+from fastapi.testclient import TestClient
 
-from triage_buddy.adapters.web.app import make_handler
+from triage_buddy.adapters.web.app import create_app
 
 
 @pytest.fixture()
-def server():
-    httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler("mock"))
-    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
-    thread.start()
-    host, port = httpd.server_address
-    try:
-        yield host, port
-    finally:
-        httpd.shutdown()
-        httpd.server_close()
-        thread.join(timeout=2)
+def client():
+    with TestClient(create_app("mock")) as client:
+        yield client
 
 
-def _request(server, method, path, body=None, headers=None):
-    host, port = server
-    conn = HTTPConnection(host, port, timeout=5)
-    try:
-        conn.request(method, path, body=body, headers=headers or {})
-        resp = conn.getresponse()
-        return resp.status, resp.read().decode("utf-8")
-    finally:
-        conn.close()
+def test_get_root_serves_form(client):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "<form" in resp.text
 
 
-def test_get_root_serves_form(server):
-    status, body = _request(server, "GET", "/")
-    assert status == 200
-    assert "<form" in body
-
-
-def test_healthz(server):
-    status, body = _request(server, "GET", "/healthz")
-    assert status == 200
-    data = json.loads(body)
+def test_healthz(client):
+    resp = client.get("/healthz")
+    assert resp.status_code == 200
+    data = resp.json()
     assert data["status"] == "ok"
     assert data["provider"] == "mock"
 
 
-def test_json_api_triage(server):
-    status, body = _request(
-        server,
-        "POST",
-        "/triage",
-        body=json.dumps({"description": "severe chest pain"}),
-        headers={"Content-Type": "application/json"},
-    )
-    assert status == 200
-    data = json.loads(body)
+def test_json_api_triage(client):
+    resp = client.post("/triage", json={"description": "severe chest pain"})
+    assert resp.status_code == 200
+    data = resp.json()
     assert data["level"] == "EMERGENCY"
     assert data["source"] == "safety-override"
 
 
-def test_json_api_bad_body(server):
-    status, body = _request(server, "POST", "/triage", body="not json",
-                            headers={"Content-Type": "application/json"})
-    assert status == 400
+def test_json_api_bad_body(client):
+    resp = client.post(
+        "/triage",
+        content="not json",
+        headers={"Content-Type": "application/json"},
+    )
+    assert resp.status_code == 400
 
 
-def test_form_post_renders_result(server):
-    status, body = _request(
-        server,
-        "POST",
+def test_form_post_renders_result(client):
+    resp = client.post(
         "/",
-        body="description=mild+runny+nose",
+        content="description=mild+runny+nose",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
-    assert status == 200
-    assert "SELF-CARE" in body
+    assert resp.status_code == 200
+    assert "SELF-CARE" in resp.text
 
 
-def test_unknown_path_404(server):
-    status, _ = _request(server, "GET", "/nope")
-    assert status == 404
+def test_unknown_path_404(client):
+    resp = client.get("/nope")
+    assert resp.status_code == 404

@@ -45,7 +45,8 @@ python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/triage-buddy "mild sore throat for two days"
 .venv/bin/triage-buddy --age 34 --duration "3 days" "high fever that won't go away"
 
-# Web server (browser form at / + JSON API at /triage)
+# Web server (FastAPI: browser form at / + JSON API at /triage)
+# The [dev] install above already includes the [web] extra (FastAPI + uvicorn).
 .venv/bin/triage-buddy-web --port 8000        # default host 127.0.0.1, provider mock
 ```
 
@@ -102,7 +103,7 @@ prompts.py     builds the request from a SymptomReport, parses the JSON reply
 adapters/
   llm/         mock (default, offline), groq (Llama), gemini — behind the port
   cli/         CLI driving adapter
-  web/         stdlib http.server: form, JSON API, /healthz
+  web/         FastAPI app + Jinja2 template: form, JSON API, /healthz
 composition.py composition root — the only place concrete adapters are chosen
 ```
 
