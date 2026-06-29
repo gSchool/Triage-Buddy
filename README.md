@@ -1,23 +1,131 @@
 # Triage Buddy
 
-A web and cli app that provides escalation advice for medical symptoms. Uses a hexagonal arhcitecture to make easy to swap out language model providers and presentation layers.
+Escalation advice for medical symptoms — *how urgently* you should seek care, with
+a rationale and a recommended next step. Available as a CLI and a web app (browser
+form + JSON API).
 
-## Steps to build
+It is **decision support, not diagnosis.** Every assessment carries a disclaimer,
+and the design fails safe: a recognized emergency phrase always returns `EMERGENCY`
+regardless of what any model says, and a provider outage degrades to a conservative
+`URGENT` recommendation rather than a crash or a silent downgrade.
 
-- ABA
-    - Always Be Agile (or always be being agile so we get ABBA?)
-    - It should be low cost to change your mind
-- Plan
-    - Use `AI 340` as guide
-    - Document what you want to actually build. Doesn't have to be perfect
-        - Generate acceptance criteria to match 
-    - Settle architectural concerns, e.g. hexagonal architecture ports and adapters, app api concerns
-    - Identify skills to be used
-        - This is important because LLM will sometimes go straight to building
-    - NOTE: none of above should care about tech stack
-- Plumbing
-    - settle on tech stack
-    - settle on testing tools
-- Start with core logic
-    - Use `AI 345` as guide
+## How it works
+
+Given a symptom description (plus optional age, sex, duration), Triage Buddy returns
+an assessment with an **escalation level**, in increasing severity:
+
+```
+SELF_CARE → ROUTINE → PROMPT → URGENT → EMERGENCY
+```
+
+The final level is the **more severe of two signals**:
+
+1. A deterministic **safety floor**. Recognized red flags (chest pain, difficulty
+   breathing, stroke signs, suicidal ideation, …) floor at `EMERGENCY` and
+   short-circuit — no model is called, so true emergencies are instant and
+   independent of provider availability.
+2. An **LLM suggestion** for everything else. The model can *escalate* above the
+   floor but can never lower the result below it.
+
+If the provider errors or returns unparseable output, the result falls back to a
+conservative `URGENT` (taken as the max with the floor). See
+[docs/requirements.md](docs/requirements.md) for the full behavior spec in EARS
+format, cross-referenced to the tests that verify each requirement.
+
+## Quick start
+
+The core and the default (mock) provider are pure Python standard library, so a
+fresh clone runs offline with no third-party installs and no API key.
+
+```bash
+# One-time setup
+python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
+
+# CLI (mock provider — offline, deterministic, no key)
+.venv/bin/triage-buddy "mild sore throat for two days"
+.venv/bin/triage-buddy --age 34 --duration "3 days" "high fever that won't go away"
+
+# Web server (browser form at / + JSON API at /triage)
+.venv/bin/triage-buddy-web --port 8000        # default host 127.0.0.1, provider mock
+```
+
+### Web endpoints
+
+| Method | Path       | Description                                                        |
+| ------ | ---------- | ------------------------------------------------------------------ |
+| `GET`  | `/`        | Browser symptom form                                               |
+| `POST` | `/`        | Form-encoded submit → form re-rendered with the assessment         |
+| `POST` | `/triage`  | JSON API: `{"description": "...", "age": 40, "sex": "...", "duration": "..."}` |
+| `GET`  | `/healthz` | Cached provider health: `200` reachable / `503` misconfigured or unreachable |
+
+## Using a real LLM provider
+
+Real LLM SDKs are **optional extras** kept out of the core. Install the one you want
+and supply its key:
+
+```bash
+# Groq (Llama 3.3 70B)
+.venv/bin/python -m pip install -e ".[groq]"
+cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
+.venv/bin/triage-buddy --provider groq "persistent cough and mild fever for three days"
+
+# Google Gemini (gemini-2.5-flash)
+.venv/bin/python -m pip install -e ".[gemini]"
+# put GEMINI_API_KEY in .env
+.venv/bin/triage-buddy --provider gemini "persistent cough and mild fever for three days"
+```
+
+Secrets load from a git-ignored `.env` in the repo root at startup (a real exported
+env var always wins over `.env`). Template: [.env.example](.env.example).
+
+If a real provider is selected but its SDK isn't installed or its key is missing, it
+fails with a clear configuration error at startup — never as a silent triage
+fallback. Providers also get bounded per-request timeouts and retry-with-backoff.
+
+## Tests
+
+```bash
+.venv/bin/python -m pytest -q                              # full suite
+.venv/bin/python -m pytest tests/test_triage.py::test_red_flag_forces_emergency_and_skips_llm
+```
+
+## Architecture
+
+Hexagonal (ports & adapters). The domain core holds no framework, transport, or SDK
+imports; everything outward-facing is an adapter behind a port. Adding a provider or
+a presentation surface does not touch the core.
+
+```
+domain/        core: escalation levels, red-flag safety, max-of-both triage rule
+ports/llm.py   the LLMProvider port (a generic text generate() contract)
+prompts.py     builds the request from a SymptomReport, parses the JSON reply
+adapters/
+  llm/         mock (default, offline), groq (Llama), gemini — behind the port
+  cli/         CLI driving adapter
+  web/         stdlib http.server: form, JSON API, /healthz
+composition.py composition root — the only place concrete adapters are chosen
+```
+
+- **Add an LLM provider:** implement `LLMProvider.generate` under `adapters/llm/`,
+  then add a branch in `composition.build_provider`. Core, CLI, and web are untouched.
+- **Add a presentation surface:** add a driving adapter that calls `TriageService`
+  (CLI and web are the examples); HTTP surfaces reuse `adapters/web/service.run_triage`.
+
+See [CLAUDE.md](CLAUDE.md) for a fuller architecture walkthrough and the safety
+invariants.
+
+## Safety invariants
+
+This is medical-adjacent software. Two invariants must always hold:
+
+1. The final level is the **max** of the deterministic safety floor and the LLM
+   suggestion — the model may escalate, never lower below the floor. Recognized red
+   flags floor at `EMERGENCY` independent of any model.
+2. Every assessment carries the disclaimer, and provider failures fail *safe*
+   (conservative `URGENT` fallback, never a crash or silent downgrade).
+
+The red-flag list and escalation mapping are intentionally conservative and **have
+not undergone clinical validation** — see *Out of Scope* and *Open Questions* in
+[docs/requirements.md](docs/requirements.md).
+```
 
