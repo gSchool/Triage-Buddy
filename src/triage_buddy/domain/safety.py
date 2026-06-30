@@ -27,7 +27,7 @@ DISCLAIMER = (
 # avoid matching substrings inside unrelated words.
 _RED_FLAGS: tuple[tuple[str, str], ...] = (
     ("chest pain or pressure", r"chest (pain|pressure|tightness)"),
-    ("difficulty breathing", r"(can'?t breathe|trouble breathing|short(ness)? of breath|difficulty breathing)"),
+    ("difficulty breathing", r"(can'?t breathe|can'?t catch (my )?breath|trouble breathing|short(ness)? of breath|difficulty breathing|wheezing|gasping)"),
     ("signs of stroke", r"(droop|slurred|slur(red)? speech|sudden numbness|sudden weakness|can'?t move (one|an? )?(side|arm|leg))"),
     ("severe bleeding", r"(severe|heavy|uncontrolled) bleeding|won'?t stop bleeding"),
     ("loss of consciousness", r"(passed out|fainted|unconscious|unresponsive|loss of consciousness)"),
