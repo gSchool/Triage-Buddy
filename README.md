@@ -96,18 +96,28 @@ An end-to-end eval suite runs a set of symptom scenarios through the full triage
 pipeline and checks each one for the expected urgency bucket plus required/forbidden
 phrases. It lives in a top-level `evals/` directory (sibling of `tests/`) and is
 written as a pytest module, but is **excluded from the default `pytest` run** — run
-it explicitly. Pick a provider with the `EVAL_PROVIDER` env var (default `mock`):
+it explicitly. Pick the provider with `--provider` (or the `EVAL_PROVIDER` env var);
+default is `mock`:
 
 ```bash
-.venv/bin/python -m pytest evals/                       # mock provider (default)
-EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v # against a real LLM
+.venv/bin/python -m pytest evals/ --provider groq -v             # evaluate groq
+EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v          # same, via env var
+.venv/bin/python -m pytest evals/ --provider groq --judge-provider gemini  # judge with a different model
 ```
 
 Evals are *not* tests: they score a provider's judgment rather than verify code
 correctness, so failures are informative rather than regressions, and they're kept
-out of the CI gate. The default `mock` provider is keyword-driven and won't satisfy
-the prose-level checks — these cases are meant to score a *real* provider
-(`EVAL_PROVIDER=groq` / `gemini`, with a key set).
+out of the CI gate.
+
+**Phrase checks are semantic, not literal.** A `must_contain` like `"see a doctor"`
+is satisfied by any equivalent wording ("seek medical attention"), and `"fluids"` by
+"drink tea or water". Each needle is graded in three tiers, cheapest first: exact
+substring, then curated synonym groups, then an **LLM judge** for open-ended
+paraphrase. The judge defaults to `--provider` but can be set with `--judge-provider`
+(or `EVAL_JUDGE_PROVIDER`). Because the judge needs real language understanding, the
+`mock` provider **cannot** judge — under `--provider mock`, any case that reaches the
+judge tier is a hard error. In short: these cases are meant to score a *real* provider
+(`groq` / `gemini`, with a key set), not the offline mock.
 
 ## Architecture
 

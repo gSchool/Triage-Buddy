@@ -27,9 +27,11 @@ python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/python -m pytest tests/test_triage.py::test_red_flag_forces_emergency_and_skips_llm
 
 # Run the end-to-end eval suite (top-level evals/, NOT collected by the default run).
-# Provider via EVAL_PROVIDER env var (default mock). These score a model, not the code.
-.venv/bin/python -m pytest evals/
-EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v
+# Provider via --provider / EVAL_PROVIDER (default mock); these score a model, not the code.
+# Phrase checks are semantic (literal -> synonym -> LLM judge), so they need a real
+# provider — mock cannot judge, so reaching the judge tier under mock is a hard error.
+.venv/bin/python -m pytest evals/ --provider groq -v
+.venv/bin/python -m pytest evals/ --provider groq --judge-provider gemini  # judge with a different model
 
 # Run the CLI (mock provider, default — offline, no key)
 .venv/bin/triage-buddy "mild sore throat for two days"
@@ -83,7 +85,7 @@ Keep domain/core logic free of framework, transport, and provider concerns; push
     - `templates/page.html`: the single Jinja2 page template (form + error card + result card + styles). Packaged via `[tool.setuptools.package-data]`.
 - **`src/triage_buddy/config.py`** — `load_dotenv()` (stdlib, no dep), called by adapter entry points.
 - **`src/triage_buddy/composition.py`** — composition root. The only place that picks concrete adapters (`build_service`/`build_provider`). Providers: `mock`, `groq`, `gemini`.
-- **`evals/`** (top-level, outside the package — like `tests/`) — end-to-end eval suite. `test_cases.py` is a pytest module parametrized over `cases.json`: each case runs through `build_service(...).assess(...)` and is checked for the resulting urgency bucket plus `must_contain`/`must_not_contain` phrases. The `EscalationLevel` name maps to the case's urgency bucket 1:1 (`low`/`medium`/`high`/`emergency`); the standing `DISCLAIMER` is excluded from the searched text (it contains "emergency"). **Evals are not tests** — they score a model's judgment, not code correctness, so they're excluded from the default run (`testpaths = ["tests"]`) and run on demand via `pytest evals/`. Provider chosen by the `EVAL_PROVIDER` env var (default `mock`, which won't satisfy the prose checks — these score a real provider). Imports resolve via `pythonpath = ["src"]`, same as the unit tests; nothing is shipped in the wheel.
+- **`evals/`** (top-level, outside the package — like `tests/`) — end-to-end eval suite. `test_cases.py` is a pytest module parametrized over `cases.json`: each case runs through `build_service(...).assess(...)` and is checked for the resulting urgency bucket plus `must_contain`/`must_not_contain` phrases. The `EscalationLevel` name maps to the case's urgency bucket 1:1 (`low`/`medium`/`high`/`emergency`); the standing `DISCLAIMER` is excluded from the searched text (it contains "emergency"). Phrase checks are **semantic**, graded by `_match.py` in three tiers (cheapest first): literal substring → curated synonym groups → an **LLM judge** for open-ended paraphrase (so `"see a doctor"` is satisfied by `"seek medical attention"`, `"fluids"` by `"drink tea or water"`). Cheap tiers short-circuit; the judge runs only on fall-through, asks for a JSON `{"satisfied": bool}` verdict (the adapters are in JSON mode), and retries transient errors. The judge provider is `--judge-provider` (or `EVAL_JUDGE_PROVIDER`), defaulting to `--provider`; `mock` is rejected as a judge, so reaching the judge tier under `--provider mock` is a hard error. **Evals are not tests** — they score a model's judgment, not code correctness, so they're excluded from the default run (`testpaths = ["tests"]`) and run on demand via `pytest evals/ --provider groq`. Provider via `--provider` / `EVAL_PROVIDER` (default `mock`, which can't satisfy the semantic checks — these score a real provider). Imports resolve via `pythonpath = ["src"]`, same as the unit tests; nothing is shipped in the wheel.
 
 ### Extending
 
