@@ -207,45 +207,73 @@
   {
     "id": "tc_016",
     "symptoms": "My 8-month-old has had a runny nose, some sneezing, and seems to have a mild sore throat for two days. No fever, feeding normally.",
-    "expected_urgency": null,
-    "must_contain": [],
-    "must_not_contain": [],
-    "notes": "Pediatric twin of tc_001 (adult cold). Infant -> escalate at least one level.",
+    "expected_urgency": "medium",
+    "must_contain": [
+      "doctor"
+    ],
+    "must_not_contain": [
+      "emergency",
+      "call 911"
+    ],
+    "notes": "Pediatric twin of tc_001 (adult cold, low). Infant -> escalate one level to medium: should advise seeing a doctor, not emergency.",
     "baseline_id": "tc_001"
   },
   {
     "id": "tc_017",
     "symptoms": "My 3-year-old has had a fever around 38.5C for four days now. It comes down with paracetamol but keeps coming back.",
-    "expected_urgency": null,
-    "must_contain": [],
-    "must_not_contain": [],
-    "notes": "Pediatric twin of tc_004 (adult persistent fever). Child -> escalate.",
+    "expected_urgency": "high",
+    "must_contain": [
+      "urgent",
+      "fever"
+    ],
+    "must_not_contain": [
+      "self-care"
+    ],
+    "notes": "Pediatric twin of tc_004 (adult persistent fever, medium). Child -> escalate one level to high.",
     "baseline_id": "tc_004"
   },
   {
     "id": "tc_018",
     "symptoms": "My toddler's temperature is 40C, he's shivering, confused at times, and the fever isn't responding to medicine.",
-    "expected_urgency": null,
-    "must_contain": [],
-    "must_not_contain": [],
-    "notes": "Pediatric twin of tc_008 (adult high fever). Escalation clamps to emergency.",
+    "expected_urgency": "emergency",
+    "must_contain": [
+      "emergency"
+    ],
+    "must_not_contain": [
+      "self-care",
+      "wait a few days"
+    ],
+    "notes": "Pediatric twin of tc_008 (adult high fever, high). Child -> escalate one level, clamping to emergency.",
     "baseline_id": "tc_008"
   },
   {
     "id": "tc_019",
     "symptoms": "My child suddenly can't catch her breath, her lips look bluish, and she's wheezing badly. It's getting worse by the minute.",
-    "expected_urgency": null,
-    "must_contain": [],
-    "must_not_contain": [],
-    "notes": "Pediatric twin of tc_011 (adult breathing emergency). Stays emergency.",
+    "expected_urgency": "emergency",
+    "must_contain": [
+      "911",
+      "emergency"
+    ],
+    "must_not_contain": [
+      "wait",
+      "monitor at home"
+    ],
+    "notes": "Pediatric twin of tc_011 (adult breathing emergency). Already emergency; escalation clamps and it stays emergency.",
     "baseline_id": "tc_011"
   },
   {
     "id": "tc_020",
     "symptoms": "My toddler has a runny nose, but honestly I'm asking about myself - I've had a mild sore throat and some sneezing for two days, no fever, eating normally.",
     "expected_urgency": "low",
-    "must_contain": [],
-    "must_not_contain": [],
-    "notes": "Decoy: child mentioned but patient is the adult. Mention alone must not escalate."
+    "must_contain": [
+      "rest",
+      "fluids"
+    ],
+    "must_not_contain": [
+      "emergency",
+      "call 911"
+    ],
+    "notes": "Decoy: child mentioned but patient is the adult. Mention alone must not escalate; stays low like tc_001.",
+    "baseline_id": "tc_001"
   }
 ]
