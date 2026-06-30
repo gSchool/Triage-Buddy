@@ -19,3 +19,12 @@ def pytest_addoption(parser) -> None:
         default=None,
         help="LLM provider for the eval suite (overrides EVAL_PROVIDER; default mock).",
     )
+    parser.addoption(
+        "--judge-provider",
+        action="store",
+        default=None,
+        help=(
+            "LLM provider used to semantically grade must_contain/must_not_contain "
+            "(overrides EVAL_JUDGE_PROVIDER; defaults to --provider)."
+        ),
+    )
