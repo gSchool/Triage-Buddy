@@ -1,12 +1,13 @@
-"""Pytest config for the eval suite: a ``--provider`` option.
+"""Pytest config for the eval suite: ``--provider``, ``--judge-provider``,
+``--samples`` options.
 
-Lets you pick the LLM provider on the command line, e.g.::
+    pytest evals/ --provider groq --judge-provider gemini --samples 5
 
-    pytest evals/ --provider groq
-
-Precedence (see the ``service`` fixture in ``test_cases.py``): the ``--provider``
-flag wins, then the ``EVAL_PROVIDER`` env var, then ``mock``. This conftest is
-scoped to ``evals/`` so the option doesn't appear on the main ``tests/`` run.
+Each option falls back to an env var then a default (see the fixtures in
+``test_cases.py``): ``--provider``→``EVAL_PROVIDER``→``mock``,
+``--judge-provider``→``EVAL_JUDGE_PROVIDER``→``--provider``,
+``--samples``→``EVAL_SAMPLES``→``3``. This conftest is scoped to ``evals/`` so
+the options don't appear on the main ``tests/`` run.
 """
 
 from __future__ import annotations
@@ -24,7 +25,18 @@ def pytest_addoption(parser) -> None:
         action="store",
         default=None,
         help=(
-            "LLM provider used to semantically grade must_contain/must_not_contain "
+            "LLM provider used to semantically grade should/should_not rubrics "
             "(overrides EVAL_JUDGE_PROVIDER; defaults to --provider)."
+        ),
+    )
+    parser.addoption(
+        "--samples",
+        action="store",
+        type=int,
+        default=None,
+        help=(
+            "How many times to run each case and majority-vote the urgency "
+            "(overrides EVAL_SAMPLES; default 3). The model is non-deterministic, "
+            "so voting over N full assessments gives a stabler score; 1 disables it."
         ),
     )

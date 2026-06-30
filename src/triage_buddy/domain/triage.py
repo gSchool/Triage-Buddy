@@ -12,6 +12,12 @@ never pull the result below it. A conservative fallback covers provider failure.
 Optimization & safety: when the floor is already at the maximum severity
 (``EMERGENCY``), no LLM answer could raise it, so we skip the call entirely —
 keeping true emergencies instant and independent of provider availability.
+
+Each assessment is a single LLM call: the level and the advice come from the
+*same* reply, so they're always internally consistent. (The eval suite samples
+the model N times for a stable score, but does so by re-running the whole
+assessment — never by overriding one call's level with another's vote, which
+would leave the advice and level describing different urgencies.)
 """
 
 from __future__ import annotations

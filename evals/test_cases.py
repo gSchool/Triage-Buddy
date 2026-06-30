@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -68,11 +69,52 @@ def _judge_provider_name(request) -> str:
     )
 
 
+def _samples_count(request) -> int:
+    """How many times to run each case: --samples, EVAL_SAMPLES, then 3."""
+    opt = request.config.getoption("--samples")
+    if opt is not None:
+        return opt
+    env = os.environ.get("EVAL_SAMPLES")
+    return int(env) if env else 3
+
+
 @pytest.fixture(scope="module")
 def service(request):
     """One service for the whole module (provider per ``_provider_name``)."""
     load_dotenv()  # pick up GROQ_API_KEY (and friends) from a local .env, if present
     return build_service(provider=_provider_name(request))
+
+
+@pytest.fixture(scope="module")
+def samples(request) -> int:
+    return _samples_count(request)
+
+
+def _aggregate(levels: list[EscalationLevel]) -> EscalationLevel:
+    """Majority vote over urgency levels, ties broken toward the more severe.
+
+    Among the levels sharing the top count, pick the highest severity, so
+    ``[LOW, HIGH]`` (a tie) → ``HIGH`` and ``[LOW, LOW, HIGH]`` → ``LOW``.
+    """
+    counts = Counter(levels)
+    top = max(counts.values())
+    return max(level for level, c in counts.items() if c == top)
+
+
+def _assess_voted(
+    service, report: SymptomReport, n: int
+) -> tuple[EscalationLevel, TriageAssessment]:
+    """Run ``assess`` ``n`` times; return the majority level and a coherent result.
+
+    Each call is a single, internally-consistent assessment (level + advice from
+    the same reply). We majority-vote the *level* across the runs (the noisy part)
+    and return one assessment whose level equals that majority, so the advice the
+    judge later grades matches the reported level — no level/advice drift.
+    """
+    results = [service.assess(report) for _ in range(n)]
+    voted = _aggregate([r.level for r in results])
+    representative = next(r for r in results if r.level == voted)
+    return voted, representative
 
 
 class _LazyJudge:
@@ -115,9 +157,12 @@ _IDS = [c.get("id", str(i)) for i, c in enumerate(_CASES)]
 
 
 @pytest.mark.parametrize("case", _CASES, ids=_IDS)
-def test_eval_case(case: dict, service, judge) -> None:
+def test_eval_case(case: dict, service, judge, samples) -> None:
     report = SymptomReport(description=case["symptoms"])
-    assessment = service.assess(report)
+    # Run N times and majority-vote the level (the model is non-deterministic);
+    # `assessment` is a coherent run whose level == the vote, so its advice
+    # matches the reported level.
+    level, assessment = _assess_voted(service, report, samples)
     advice = _advice_text(assessment)
 
     failures: list[str] = []
@@ -125,13 +170,13 @@ def test_eval_case(case: dict, service, judge) -> None:
     # 1. Urgency bucket — deterministic, judge-free (the hard guard, esp. for
     #    emergencies: a flaky judge can never let a non-escalated emergency pass).
     expected = str(case.get("expected_urgency", "")).strip().lower()
-    actual_bucket = assessment.level.name.lower()
+    actual_bucket = level.name.lower()
     if expected not in _BUCKETS:
         failures.append(f"case declares unknown expected_urgency {expected!r}")
     elif actual_bucket != expected:
         failures.append(
             f"urgency: expected {expected!r}, got {actual_bucket!r} "
-            f"(level {assessment.level.name})"
+            f"(voted {level.name} over {samples} runs)"
         )
 
     # 2. should — the advice must satisfy this rubric (judge).
@@ -146,6 +191,6 @@ def test_eval_case(case: dict, service, judge) -> None:
 
     if failures:
         pytest.fail(
-            f"{case.get('id', '?')} (level {assessment.level.name}):\n  "
+            f"{case.get('id', '?')} (level {level.name}):\n  "
             + "\n  ".join(failures)
         )
