@@ -49,10 +49,18 @@ def _load_cases() -> list[dict]:
 
 
 @pytest.fixture(scope="module")
-def service():
-    """One service for the whole module, provider chosen via ``EVAL_PROVIDER``."""
+def service(request):
+    """One service for the whole module.
+
+    Provider precedence: the ``--provider`` flag (see ``conftest.py``), then the
+    ``EVAL_PROVIDER`` env var, then ``mock``.
+    """
     load_dotenv()  # pick up GROQ_API_KEY (and friends) from a local .env, if present
-    provider = os.environ.get("EVAL_PROVIDER", "mock")
+    provider = (
+        request.config.getoption("--provider")
+        or os.environ.get("EVAL_PROVIDER")
+        or "mock"
+    )
     return build_service(provider=provider)
 
 
