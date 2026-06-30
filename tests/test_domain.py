@@ -30,8 +30,3 @@ def test_from_name_rejects_unknown():
 def test_symptom_report_rejects_empty_description():
     with pytest.raises(ValueError):
         SymptomReport(description="   ")
-
-
-def test_symptom_report_rejects_negative_age():
-    with pytest.raises(ValueError):
-        SymptomReport(description="headache", age=-1)

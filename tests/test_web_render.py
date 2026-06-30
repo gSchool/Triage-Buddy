@@ -19,7 +19,7 @@ def test_result_is_rendered():
 
 
 def test_user_input_is_escaped():
-    payload = {"description": '<script>alert(1)</script>', "age": "", "sex": "", "duration": ""}
+    payload = {"description": '<script>alert(1)</script>'}
     page = render_page(form=payload)
     assert "<script>alert(1)</script>" not in page
     assert "&lt;script&gt;" in page

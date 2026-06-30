@@ -6,19 +6,10 @@ from triage_buddy.domain.models import EscalationLevel, SymptomReport
 from triage_buddy.prompts import DraftParseError, build_request, parse_draft
 
 
-def test_build_request_includes_optional_context():
-    report = SymptomReport(description="cough", age=40, sex="F", duration="3 days")
-    req = build_request(report)
-    assert "cough" in req.user
-    assert "Age: 40" in req.user
-    assert "Sex: F" in req.user
-    assert "Duration: 3 days" in req.user
+def test_build_request_carries_description_and_system_prompt():
+    req = build_request(SymptomReport(description="  cough  "))
+    assert "Symptoms: cough" in req.user  # description is stripped
     assert "JSON" in req.system
-
-
-def test_build_request_omits_absent_context():
-    req = build_request(SymptomReport(description="cough"))
-    assert "Age:" not in req.user
 
 
 def test_parse_draft_plain_json():

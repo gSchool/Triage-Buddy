@@ -33,9 +33,6 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="*",
         help="Symptom description. If omitted, you'll be prompted to type it.",
     )
-    parser.add_argument("--age", type=int, default=None, help="Patient age in years.")
-    parser.add_argument("--sex", default=None, help="Patient sex.")
-    parser.add_argument("--duration", default=None, help="How long symptoms have lasted.")
     parser.add_argument(
         "--provider",
         default="mock",
@@ -73,12 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        report = SymptomReport(
-            description=description,
-            age=args.age,
-            sex=args.sex,
-            duration=args.duration,
-        )
+        report = SymptomReport(description=description)
     except ValueError as exc:
         print(f"Invalid input: {exc}", file=sys.stderr)
         return 2

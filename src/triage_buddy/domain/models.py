@@ -66,18 +66,13 @@ _LEVEL_ACTIONS = {
 
 @dataclass(frozen=True)
 class SymptomReport:
-    """A patient's described symptoms plus optional structured context."""
+    """A patient's described symptoms."""
 
     description: str
-    age: int | None = None
-    sex: str | None = None
-    duration: str | None = None
 
     def __post_init__(self) -> None:
         if not self.description or not self.description.strip():
             raise ValueError("symptom description must not be empty")
-        if self.age is not None and self.age < 0:
-            raise ValueError("age must not be negative")
 
 
 @dataclass(frozen=True)

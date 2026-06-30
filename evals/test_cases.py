@@ -89,12 +89,7 @@ _IDS = [c.get("id", str(i)) for i, c in enumerate(_CASES)]
 
 @pytest.mark.parametrize("case", _CASES, ids=_IDS)
 def test_eval_case(case: dict, service) -> None:
-    report = SymptomReport(
-        description=case["symptoms"],
-        age=case.get("age"),
-        sex=case.get("sex"),
-        duration=case.get("duration"),
-    )
+    report = SymptomReport(description=case["symptoms"])
     assessment = service.assess(report)
     text = _searchable_text(assessment)
 

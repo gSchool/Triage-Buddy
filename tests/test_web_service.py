@@ -30,17 +30,6 @@ def test_run_triage_missing_description():
     assert "description" in body["error"]
 
 
-def test_run_triage_bad_age():
-    status, body = run_triage(description="cough", age="old")
-    assert status == 400
-    assert "age" in body["error"]
-
-
-def test_run_triage_age_coerced_from_string():
-    status, _ = run_triage(description="cough", age="40", provider="mock")
-    assert status == 200
-
-
 def test_run_triage_unknown_provider_is_503():
     status, body = run_triage(description="cough", provider="nope")
     assert status == 503

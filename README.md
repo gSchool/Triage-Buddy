@@ -11,7 +11,7 @@ regardless of what any model says, and a provider outage degrades to a conservat
 
 ## How it works
 
-Given a symptom description (plus optional age, sex, duration), Triage Buddy returns
+Given a symptom description, Triage Buddy returns
 an assessment with an **escalation level**, in increasing severity:
 
 ```
@@ -43,7 +43,7 @@ python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
 
 # CLI (mock provider — offline, deterministic, no key)
 .venv/bin/triage-buddy "mild sore throat for two days"
-.venv/bin/triage-buddy --age 34 --duration "3 days" "high fever that won't go away"
+.venv/bin/triage-buddy "high fever that won't go away"
 
 # Web server (FastAPI: browser form at / + JSON API at /triage)
 # The [dev] install above already includes the [web] extra (FastAPI + uvicorn).
@@ -56,7 +56,7 @@ python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
 | ------ | ---------- | ------------------------------------------------------------------ |
 | `GET`  | `/`        | Browser symptom form                                               |
 | `POST` | `/`        | Form-encoded submit → form re-rendered with the assessment         |
-| `POST` | `/triage`  | JSON API: `{"description": "...", "age": 40, "sex": "...", "duration": "..."}` |
+| `POST` | `/triage`  | JSON API: `{"description": "..."}` |
 | `GET`  | `/healthz` | Cached provider health: `200` reachable / `503` misconfigured or unreachable |
 
 ## Using a real LLM provider

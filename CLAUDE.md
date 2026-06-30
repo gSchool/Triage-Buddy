@@ -33,7 +33,7 @@ EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v
 
 # Run the CLI (mock provider, default — offline, no key)
 .venv/bin/triage-buddy "mild sore throat for two days"
-.venv/bin/triage-buddy --age 34 --duration "3 days" "high fever that won't go away"
+.venv/bin/triage-buddy "high fever that won't go away"
 # or without install: PYTHONPATH=src .venv/bin/python -m triage_buddy.adapters.cli.app "..."
 
 # Run against Groq (Llama). Needs the [groq] extra and a key:
@@ -49,7 +49,7 @@ cp .env.example .env   # then put your GROQ_API_KEY in .env (git-ignored)
 .venv/bin/python -m pip install -e ".[web]"              # fastapi + uvicorn (skip if you installed [dev])
 .venv/bin/triage-buddy-web --port 8000 --provider groq   # default host 127.0.0.1, provider mock
 #   GET  /         browser form
-#   POST /triage   JSON API: {"description": "...", "age": 40, "sex": "...", "duration": "..."}
+#   POST /triage   JSON API: {"description": "..."}
 #   GET  /healthz  liveness check
 ```
 

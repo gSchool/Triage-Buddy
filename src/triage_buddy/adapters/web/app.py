@@ -3,7 +3,7 @@
 Routes:
 - ``GET  /``        -> HTML form
 - ``POST /``        -> HTML form re-rendered with the assessment (urlencoded)
-- ``POST /triage``  -> JSON API (``{"description": ..., "age": ...}``)
+- ``POST /triage``  -> JSON API (``{"description": ...}``)
 - ``GET  /healthz`` -> provider health: 200 when reachable, 503 otherwise
 
 This is presentation only. All triage logic lives in the core; all request
@@ -119,12 +119,9 @@ def create_app(provider: str = "mock", *, health_ttl: float = DEFAULT_HEALTH_TTL
         def first(name: str) -> str:
             return fields.get(name, [""])[0]
 
-        form = {k: first(k) for k in ("description", "age", "sex", "duration")}
+        form = {"description": first("description")}
         status, data = run_triage(
             description=form["description"],
-            age=form["age"],
-            sex=form["sex"],
-            duration=form["duration"],
             provider=provider,
         )
         if status == 200:
@@ -148,9 +145,6 @@ def create_app(provider: str = "mock", *, health_ttl: float = DEFAULT_HEALTH_TTL
             )
         status, data = run_triage(
             description=payload.get("description"),
-            age=payload.get("age"),
-            sex=payload.get("sex"),
-            duration=payload.get("duration"),
             provider=provider,
         )
         return JSONResponse(data, status_code=status)

@@ -37,9 +37,6 @@ def assessment_to_dict(assessment: TriageAssessment) -> dict[str, Any]:
 def run_triage(
     *,
     description: str | None,
-    age: Any = None,
-    sex: str | None = None,
-    duration: str | None = None,
     provider: str = "mock",
 ) -> tuple[int, dict[str, Any]]:
     """Validate inputs, run triage, and return ``(http_status, body)``.
@@ -50,17 +47,8 @@ def run_triage(
     if not description or not description.strip():
         return 400, {"error": "description is required"}
 
-    age_value, age_error = _coerce_age(age)
-    if age_error is not None:
-        return 400, {"error": age_error}
-
     try:
-        report = SymptomReport(
-            description=description,
-            age=age_value,
-            sex=(sex or None),
-            duration=(duration or None),
-        )
+        report = SymptomReport(description=description)
     except ValueError as exc:
         return 400, {"error": str(exc)}
 
@@ -136,13 +124,3 @@ class ProviderHealthCache:
         with self._lock:
             self._entries[provider] = (now + self._ttl, result)
         return result
-
-
-def _coerce_age(age: Any) -> tuple[int | None, str | None]:
-    """Normalize an age that may arrive as int, numeric string, or empty."""
-    if age is None or age == "":
-        return None, None
-    try:
-        return int(age), None
-    except (TypeError, ValueError):
-        return None, "age must be a whole number"

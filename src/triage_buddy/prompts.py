@@ -74,14 +74,7 @@ class DraftParseError(Exception):
 
 def build_request(report: SymptomReport) -> LLMRequest:
     """Turn a ``SymptomReport`` into a provider-agnostic ``LLMRequest``."""
-    parts = [f"Symptoms: {report.description.strip()}"]
-    if report.age is not None:
-        parts.append(f"Age: {report.age}")
-    if report.sex:
-        parts.append(f"Sex: {report.sex}")
-    if report.duration:
-        parts.append(f"Duration: {report.duration}")
-    return LLMRequest(system=SYSTEM_PROMPT, user="\n".join(parts))
+    return LLMRequest(system=SYSTEM_PROMPT, user=f"Symptoms: {report.description.strip()}")
 
 
 def parse_draft(text: str) -> TriageDraft:

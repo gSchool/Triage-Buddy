@@ -43,20 +43,11 @@ that I can receive escalation advice.
    produce an assessment for it.
 2. IF the symptom description is empty or whitespace-only THEN the system SHALL
    reject the request with a validation error and SHALL NOT produce an assessment.
-3. WHEN optional context (age, sex, duration) is provided THEN the system SHALL
-   include it in the information used to assess.
-4. IF a provided age is negative THEN the system SHALL reject the request with a
-   validation error.
-5. WHEN age is provided as a numeric string (web/form input) THEN the system SHALL
-   accept it as an integer; IF age is non-numeric THEN the system SHALL reject the
-   request with a validation error.
 
 **Edge Cases:**
 - Empty description on the CLI with no piped input → prompt or error (see Req 6).
-- Age `0` is valid; age `-1` is rejected.
 
-*Verified by:* `test_domain.py`, `test_web_service.py::test_run_triage_missing_description`,
-`::test_run_triage_bad_age`, `::test_run_triage_age_coerced_from_string`.
+*Verified by:* `test_domain.py`, `test_web_service.py::test_run_triage_missing_description`.
 
 ---
 
