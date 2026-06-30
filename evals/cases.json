@@ -203,5 +203,49 @@
       "911"
     ],
     "notes": "Non-medical input \u2014 model should decline to triage and redirect, not hallucinate an urgency assessment."
+  },
+  {
+    "id": "tc_016",
+    "symptoms": "My 8-month-old has had a runny nose, some sneezing, and seems to have a mild sore throat for two days. No fever, feeding normally.",
+    "expected_urgency": null,
+    "must_contain": [],
+    "must_not_contain": [],
+    "notes": "Pediatric twin of tc_001 (adult cold). Infant -> escalate at least one level.",
+    "baseline_id": "tc_001"
+  },
+  {
+    "id": "tc_017",
+    "symptoms": "My 3-year-old has had a fever around 38.5C for four days now. It comes down with paracetamol but keeps coming back.",
+    "expected_urgency": null,
+    "must_contain": [],
+    "must_not_contain": [],
+    "notes": "Pediatric twin of tc_004 (adult persistent fever). Child -> escalate.",
+    "baseline_id": "tc_004"
+  },
+  {
+    "id": "tc_018",
+    "symptoms": "My toddler's temperature is 40C, he's shivering, confused at times, and the fever isn't responding to medicine.",
+    "expected_urgency": null,
+    "must_contain": [],
+    "must_not_contain": [],
+    "notes": "Pediatric twin of tc_008 (adult high fever). Escalation clamps to emergency.",
+    "baseline_id": "tc_008"
+  },
+  {
+    "id": "tc_019",
+    "symptoms": "My child suddenly can't catch her breath, her lips look bluish, and she's wheezing badly. It's getting worse by the minute.",
+    "expected_urgency": null,
+    "must_contain": [],
+    "must_not_contain": [],
+    "notes": "Pediatric twin of tc_011 (adult breathing emergency). Stays emergency.",
+    "baseline_id": "tc_011"
+  },
+  {
+    "id": "tc_020",
+    "symptoms": "My toddler has a runny nose, but honestly I'm asking about myself - I've had a mild sore throat and some sneezing for two days, no fever, eating normally.",
+    "expected_urgency": "low",
+    "must_contain": [],
+    "must_not_contain": [],
+    "notes": "Decoy: child mentioned but patient is the adult. Mention alone must not escalate."
   }
 ]
