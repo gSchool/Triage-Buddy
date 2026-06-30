@@ -23,7 +23,10 @@ The final level is the **more severe of two signals**:
 1. A deterministic **safety floor**. Recognized red flags (chest pain, difficulty
    breathing, stroke signs, suicidal ideation, …) floor at `EMERGENCY` and
    short-circuit — no model is called, so true emergencies are instant and
-   independent of provider availability.
+   independent of provider availability. Detection skips *explicitly denied*
+   symptoms ("no chest pain, no shortness of breath"), but conservatively: when a
+   negation is ambiguous the flag stands, so the floor may over-triage but never
+   misses a real red flag.
 2. An **LLM suggestion** for everything else. The model can *escalate* above the
    floor but can never lower the result below it.
 

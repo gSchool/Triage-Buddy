@@ -41,16 +41,51 @@ _COMPILED: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
     (desc, re.compile(pattern, re.IGNORECASE)) for desc, pattern in _RED_FLAGS
 )
 
+# Negation cues and clause-resetting boundaries, for ``_is_negated``. A red-flag
+# match is treated as *denied* only when one of these cues sits just before it
+# with no boundary in between, so "no chest pain" is dropped but "no fever, but
+# chest pain" is kept.
+_NEGATION_CUE = re.compile(r"\b(no|not|n't|without|deny|denies|denied|negative for)\b", re.IGNORECASE)
+_CLAUSE_RESET = re.compile(r"[.;,]|\b(but|however|although|though)\b", re.IGNORECASE)
+
+# How far back (characters) to look for a negating cue before a match.
+_NEGATION_LOOKBACK = 40
+
+
+def _is_negated(text: str, match: re.Match[str]) -> bool:
+    """True if the red-flag ``match`` is denied by a preceding negation.
+
+    Conservative by design: a match counts as negated only when a negation cue
+    appears within ``_NEGATION_LOOKBACK`` characters *immediately* before it and
+    no clause boundary (``,`` ``;`` ``.`` ``but`` …) intervenes to reset it. So
+    "no chest pain" is negated, but "no fever, but chest pain" is not — the comma
+    and "but" cancel the "no" before "chest pain". When in doubt this returns
+    ``False`` (not negated → the flag stands), preserving the fail-safe rule that
+    the floor may over-triage but must never miss a real red flag.
+    """
+    window = text[max(0, match.start() - _NEGATION_LOOKBACK) : match.start()]
+    last_cue: re.Match[str] | None = None
+    for cue in _NEGATION_CUE.finditer(window):
+        last_cue = cue
+    if last_cue is None:
+        return False
+    # A clause reset between the cue and the match cancels the negation.
+    return not _CLAUSE_RESET.search(window[last_cue.end() :])
+
 
 def detect_red_flags(text: str) -> tuple[str, ...]:
     """Return descriptions of any emergency red flags found in ``text``.
 
-    Returns an empty tuple when none match. The result is ordered as the rules
-    are declared, and de-duplicated.
+    A pattern counts only when it appears *un-negated*: an explicitly denied
+    symptom ("no chest pain, no shortness of breath") does not floor the result.
+    See ``_is_negated`` for the deliberately conservative negation rule. Returns
+    an empty tuple when none match; ordered as declared, de-duplicated.
     """
     found: list[str] = []
     for description, pattern in _COMPILED:
-        if pattern.search(text) and description not in found:
+        if description in found:
+            continue
+        if any(not _is_negated(text, m) for m in pattern.finditer(text)):
             found.append(description)
     return tuple(found)
 
