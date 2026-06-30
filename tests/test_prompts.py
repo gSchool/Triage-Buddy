@@ -22,24 +22,57 @@ def test_build_request_omits_absent_context():
 
 
 def test_parse_draft_plain_json():
-    text = json.dumps({"level": "PROMPT", "rationale": "r", "advice": "a"})
+    text = json.dumps(
+        {"urgency": "medium", "recommendation": "see a doctor", "disclaimer": "d"}
+    )
     draft = parse_draft(text)
-    assert draft.level is EscalationLevel.PROMPT
-    assert draft.rationale == "r"
+    assert draft.level is EscalationLevel.MEDIUM
+    assert draft.advice == "see a doctor"
+
+
+@pytest.mark.parametrize(
+    "bucket,level",
+    [
+        ("low", EscalationLevel.LOW),
+        ("medium", EscalationLevel.MEDIUM),
+        ("high", EscalationLevel.HIGH),
+        ("emergency", EscalationLevel.EMERGENCY),
+    ],
+)
+def test_parse_draft_maps_each_urgency_bucket(bucket, level):
+    text = json.dumps({"urgency": bucket, "recommendation": "a", "disclaimer": "d"})
+    assert parse_draft(text).level is level
+
+
+def test_parse_draft_ignores_model_disclaimer():
+    # The model's disclaimer is parsed-and-discarded; the domain appends its own.
+    text = json.dumps(
+        {"urgency": "low", "recommendation": "rest", "disclaimer": "anything"}
+    )
+    draft = parse_draft(text)
+    assert not hasattr(draft, "disclaimer")
+    assert draft.advice == "rest"
 
 
 def test_parse_draft_tolerates_code_fence_and_prose():
-    text = '```json\n{"level": "URGENT", "rationale": "r", "advice": "a"}\n```'
-    assert parse_draft(text).level is EscalationLevel.URGENT
+    text = '```json\n{"urgency": "high", "recommendation": "a", "disclaimer": "d"}\n```'
+    assert parse_draft(text).level is EscalationLevel.HIGH
+
+
+def test_parse_draft_disclaimer_optional():
+    # Only urgency + recommendation are required by the parser.
+    text = json.dumps({"urgency": "low", "recommendation": "rest"})
+    assert parse_draft(text).level is EscalationLevel.LOW
 
 
 @pytest.mark.parametrize(
     "text",
     [
         "not json at all",
-        json.dumps({"level": "URGENT", "rationale": "r"}),  # missing advice
-        json.dumps({"level": "WHENEVER", "rationale": "r", "advice": "a"}),  # bad level
-        json.dumps({"level": "URGENT", "rationale": "", "advice": "a"}),  # empty
+        json.dumps({"urgency": "high"}),  # missing recommendation
+        json.dumps({"recommendation": "a"}),  # missing urgency
+        json.dumps({"urgency": "whenever", "recommendation": "a"}),  # bad bucket
+        json.dumps({"urgency": "high", "recommendation": ""}),  # empty recommendation
         json.dumps(["not", "an", "object"]),
     ],
 )

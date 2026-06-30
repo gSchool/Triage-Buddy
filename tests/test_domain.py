@@ -4,19 +4,19 @@ from triage_buddy.domain.models import EscalationLevel, SymptomReport
 
 
 def test_levels_are_ordered_by_severity():
-    assert EscalationLevel.EMERGENCY > EscalationLevel.URGENT
-    assert EscalationLevel.SELF_CARE < EscalationLevel.ROUTINE
+    assert EscalationLevel.EMERGENCY > EscalationLevel.HIGH
+    assert EscalationLevel.LOW < EscalationLevel.MEDIUM
     assert max(EscalationLevel) is EscalationLevel.EMERGENCY
 
 
 def test_level_has_label_and_action():
-    assert EscalationLevel.URGENT.label == "Urgent"
-    assert "today" in EscalationLevel.URGENT.action.lower()
+    assert EscalationLevel.HIGH.label == "High"
+    assert "today" in EscalationLevel.HIGH.action.lower()
 
 
 @pytest.mark.parametrize(
     "name,expected",
-    [("urgent", EscalationLevel.URGENT), ("EMERGENCY", EscalationLevel.EMERGENCY), (" self_care ", EscalationLevel.SELF_CARE)],
+    [("high", EscalationLevel.HIGH), ("EMERGENCY", EscalationLevel.EMERGENCY), (" low ", EscalationLevel.LOW)],
 )
 def test_from_name_is_case_and_space_insensitive(name, expected):
     assert EscalationLevel.from_name(name) is expected

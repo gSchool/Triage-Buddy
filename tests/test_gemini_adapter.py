@@ -43,7 +43,7 @@ def _request():
 
 
 def test_generate_sends_prompt_and_returns_text():
-    payload = json.dumps({"level": "PROMPT", "rationale": "r", "advice": "a"})
+    payload = json.dumps({"urgency": "medium", "recommendation": "a", "disclaimer": "d"})
     client = FakeClient(text=payload)
     provider = GeminiProvider(client=client, model="custom-gemini")
 
@@ -80,7 +80,7 @@ def test_missing_key_raises_llm_error(monkeypatch):
 
 
 def test_retries_transient_failures_then_succeeds():
-    payload = json.dumps({"level": "PROMPT", "rationale": "r", "advice": "a"})
+    payload = json.dumps({"urgency": "medium", "recommendation": "a", "disclaimer": "d"})
     client = FakeClient(text=payload, fail_times=2)
     provider = GeminiProvider(client=client, max_attempts=3, retry_base_delay=0)
 

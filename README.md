@@ -7,7 +7,7 @@ form + JSON API).
 It is **decision support, not diagnosis.** Every assessment carries a disclaimer,
 and the design fails safe: a recognized emergency phrase always returns `EMERGENCY`
 regardless of what any model says, and a provider outage degrades to a conservative
-`URGENT` recommendation rather than a crash or a silent downgrade.
+`HIGH` recommendation rather than a crash or a silent downgrade.
 
 ## How it works
 
@@ -15,7 +15,7 @@ Given a symptom description (plus optional age, sex, duration), Triage Buddy ret
 an assessment with an **escalation level**, in increasing severity:
 
 ```
-SELF_CARE → ROUTINE → PROMPT → URGENT → EMERGENCY
+LOW → MEDIUM → HIGH → EMERGENCY
 ```
 
 The final level is the **more severe of two signals**:
@@ -28,7 +28,7 @@ The final level is the **more severe of two signals**:
    floor but can never lower the result below it.
 
 If the provider errors or returns unparseable output, the result falls back to a
-conservative `URGENT` (taken as the max with the floor). See
+conservative `HIGH` (taken as the max with the floor). See
 [docs/requirements.md](docs/requirements.md) for the full behavior spec in EARS
 format, cross-referenced to the tests that verify each requirement.
 
@@ -146,7 +146,7 @@ This is medical-adjacent software. Two invariants must always hold:
    suggestion — the model may escalate, never lower below the floor. Recognized red
    flags floor at `EMERGENCY` independent of any model.
 2. Every assessment carries the disclaimer, and provider failures fail *safe*
-   (conservative `URGENT` fallback, never a crash or silent downgrade).
+   (conservative `HIGH` fallback, never a crash or silent downgrade).
 
 The red-flag list and escalation mapping are intentionally conservative and **have
 not undergone clinical validation** — see *Out of Scope* and *Open Questions* in

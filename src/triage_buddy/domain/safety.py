@@ -62,13 +62,13 @@ def severity_floor(text: str) -> tuple[EscalationLevel, tuple[str, ...]]:
     floor can only ever raise the result, never lower it.
 
     Today this encodes a single rule: a recognized red flag floors the result at
-    ``EMERGENCY``. Intermediate floors (e.g. ``URGENT``/``PROMPT`` for specific
+    ``EMERGENCY``. Intermediate floors (e.g. ``HIGH``/``MEDIUM`` for specific
     concerning-but-not-emergency phrases) are a deliberate extension point —
     pending clinical review, add them here and the max-of-both logic honors them
-    automatically. Absent any rule, the floor is ``SELF_CARE`` (the minimum),
-    which imposes no constraint on the LLM.
+    automatically. Absent any rule, the floor is ``LOW`` (the minimum), which
+    imposes no constraint on the LLM.
     """
     red = detect_red_flags(text)
     if red:
         return EscalationLevel.EMERGENCY, red
-    return EscalationLevel.SELF_CARE, ()
+    return EscalationLevel.LOW, ()

@@ -50,7 +50,7 @@ def test_form_post_renders_result(client):
         headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
     assert resp.status_code == 200
-    assert "SELF-CARE" in resp.text
+    assert "LOW" in resp.text
 
 
 def test_unknown_path_404(client):

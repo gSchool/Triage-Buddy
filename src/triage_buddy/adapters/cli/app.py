@@ -16,10 +16,9 @@ from triage_buddy.ports.llm import LLMError
 
 # Map each level to a glyph so urgency reads at a glance in a terminal.
 _GLYPHS = {
-    EscalationLevel.SELF_CARE: "🟢",
-    EscalationLevel.ROUTINE: "🟢",
-    EscalationLevel.PROMPT: "🟡",
-    EscalationLevel.URGENT: "🟠",
+    EscalationLevel.LOW: "🟢",
+    EscalationLevel.MEDIUM: "🟡",
+    EscalationLevel.HIGH: "🟠",
     EscalationLevel.EMERGENCY: "🔴",
 }
 

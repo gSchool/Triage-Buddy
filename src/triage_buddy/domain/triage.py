@@ -32,7 +32,8 @@ from triage_buddy.prompts import (
 from triage_buddy.ports.llm import LLMError, LLMProvider
 
 # Level used when the LLM can't be trusted (error or unparseable reply).
-_FALLBACK_LEVEL = EscalationLevel.URGENT
+# HIGH, not EMERGENCY: conservative (don't sit on it) without auto-dialing 911.
+_FALLBACK_LEVEL = EscalationLevel.HIGH
 
 FloorFn = Callable[[str], "tuple[EscalationLevel, tuple[str, ...]]"]
 

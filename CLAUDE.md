@@ -66,11 +66,11 @@ There is no lint config yet.
 Keep domain/core logic free of framework, transport, and provider concerns; push those to the edges (adapters).
 
 - **`src/triage_buddy/domain/`** — the core. No I/O, no SDKs.
-  - `models.py`: `EscalationLevel` (ordered IntEnum: SELF_CARE→EMERGENCY), `SymptomReport`, `TriageAssessment`.
-  - `safety.py`: red-flag detection, the standing `DISCLAIMER`, and `severity_floor()` (deterministic minimum severity + reasons; today red flags → `EMERGENCY`, else `SELF_CARE`). The injectable seam for future intermediate floors.
-  - `triage.py`: `TriageService.assess()` — the use case. **Max-of-both-signals**: returns the more severe of `severity_floor` and the LLM suggestion (`floor` is injectable via the constructor). When the floor is already `EMERGENCY` the LLM is skipped (can't raise it; keeps emergencies instant). Provider failure → conservative `URGENT` fallback, taken as max with the floor.
+  - `models.py`: `EscalationLevel` (ordered IntEnum: `LOW`→`MEDIUM`→`HIGH`→`EMERGENCY`, matching the wire vocabulary 1:1), `SymptomReport`, `TriageAssessment`.
+  - `safety.py`: red-flag detection, the standing `DISCLAIMER`, and `severity_floor()` (deterministic minimum severity + reasons; today red flags → `EMERGENCY`, else `LOW`). The injectable seam for future intermediate floors.
+  - `triage.py`: `TriageService.assess()` — the use case. **Max-of-both-signals**: returns the more severe of `severity_floor` and the LLM suggestion (`floor` is injectable via the constructor). When the floor is already `EMERGENCY` the LLM is skipped (can't raise it; keeps emergencies instant). Provider failure → conservative `HIGH` fallback (not `EMERGENCY` — don't auto-dial 911 on an outage), taken as max with the floor.
 - **`src/triage_buddy/ports/llm.py`** — `LLMProvider` port: a generic `generate(LLMRequest) -> LLMResponse` text contract. No triage knowledge lives here. `LLMError` signals provider failure.
-- **`src/triage_buddy/prompts.py`** — builds the request from a `SymptomReport` and parses the JSON reply into a `TriageDraft`. Knows the wire shape; imports no SDK.
+- **`src/triage_buddy/prompts.py`** — builds the request from a `SymptomReport` and parses the JSON reply into a `TriageDraft`. Knows the wire shape; imports no SDK. The wire schema is `{urgency, recommendation, disclaimer}`; `urgency` (`low`/`medium`/`high`/`emergency`) maps 1:1 onto `EscalationLevel` by name via `from_name` (no bucketing table). `recommendation` becomes the draft's advice, a rationale is synthesized (the model no longer returns one), and the model's `disclaimer` is parsed-and-discarded — the domain appends its own standing `DISCLAIMER`, and `severity_floor` (not the model) remains the source of truth for red flags. The system prompt also instructs the model on emergency flagging, pediatric escalation, and recommendation wording, but the domain invariants hold regardless of whether the model obeys.
 - **`src/triage_buddy/adapters/`**
   - `llm/mock.py`: `MockLLMProvider` — deterministic, offline, keyword-driven. First adapter behind the port; speaks the same JSON shape a real provider would.
   - `llm/_retry.py`: `call_with_retries()` — shared retry-with-exponential-backoff wrapper (injectable `sleep`). Real adapters run each request through it; defaults: 30s timeout, 3 attempts, 0.5s base delay.
@@ -94,7 +94,7 @@ Keep domain/core logic free of framework, transport, and provider concerns; push
 
 This is medical-adjacent software. Two invariants must hold:
 1. The final level is the *max* of the deterministic `severity_floor` and the LLM's suggestion — the model can escalate but never lower the result below the floor. Recognized red flags floor at `EMERGENCY` independent of any model.
-2. Every `TriageAssessment` carries the disclaimer, and provider failures fail *safe* (conservative `URGENT` fallback, never a crash or silent downgrade).
+2. Every `TriageAssessment` carries the disclaimer, and provider failures fail *safe* (conservative `HIGH` fallback, never a crash or silent downgrade).
 
 ## Build plan (from README)
 

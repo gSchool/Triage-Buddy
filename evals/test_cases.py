@@ -37,16 +37,9 @@ from triage_buddy.composition import build_service
 from triage_buddy.config import load_dotenv
 from triage_buddy.domain.models import EscalationLevel, SymptomReport, TriageAssessment
 
-# Collapse the 5-level domain enum onto the 4 buckets the eval cases use.
-_BUCKET_OF_LEVEL: dict[EscalationLevel, str] = {
-    EscalationLevel.SELF_CARE: "low",
-    EscalationLevel.ROUTINE: "low",
-    EscalationLevel.PROMPT: "medium",
-    EscalationLevel.URGENT: "high",
-    EscalationLevel.EMERGENCY: "emergency",
-}
-
-_BUCKETS = ("low", "medium", "high", "emergency")
+# The domain enum names match the cases' urgency buckets one-to-one, so the
+# bucket is just the level name lower-cased — no mapping table needed.
+_BUCKETS = tuple(level.name.lower() for level in EscalationLevel)
 
 _CASES_PATH = Path(__file__).with_name("cases.json")
 
@@ -101,7 +94,7 @@ def test_eval_case(case: dict, service) -> None:
 
     # 1. Urgency bucket.
     expected = str(case.get("expected_urgency", "")).strip().lower()
-    actual_bucket = _BUCKET_OF_LEVEL[assessment.level]
+    actual_bucket = assessment.level.name.lower()
     if expected not in _BUCKETS:
         failures.append(f"case declares unknown expected_urgency {expected!r}")
     elif actual_bucket != expected:

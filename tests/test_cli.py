@@ -13,7 +13,7 @@ def test_cli_mild_path(capsys):
     code = main(["mild", "runny", "nose"])
     out = capsys.readouterr().out
     assert code == 0
-    assert "SELF-CARE" in out
+    assert "LOW" in out
     assert "not a medical diagnosis" in out
 
 

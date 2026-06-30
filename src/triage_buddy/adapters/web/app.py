@@ -33,10 +33,9 @@ from triage_buddy.config import load_dotenv
 # Escalation level name -> badge background color, for a quick visual read of urgency.
 _LEVEL_COLORS = {
     "EMERGENCY": "#c0392b",
-    "URGENT": "#e67e22",
-    "PROMPT": "#f1c40f",
-    "ROUTINE": "#27ae60",
-    "SELF_CARE": "#2ecc71",
+    "HIGH": "#e67e22",
+    "MEDIUM": "#f1c40f",
+    "LOW": "#27ae60",
 }
 
 _MAX_BODY_BYTES = 64 * 1024  # generous for a symptom description; rejects abuse

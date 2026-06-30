@@ -22,8 +22,8 @@ verify a requirement.
 
 ## Definitions
 
-- **Escalation level** — one of, in increasing severity: `SELF_CARE`, `ROUTINE`,
-  `PROMPT`, `URGENT`, `EMERGENCY`.
+- **Escalation level** — one of, in increasing severity: `LOW`, `MEDIUM`,
+  `HIGH`, `EMERGENCY` (matching the model's wire vocabulary).
 - **Red flag** — a recognized phrase indicating a potential emergency (e.g. chest
   pain, difficulty breathing, stroke signs, suicidal ideation).
 - **Assessment** — `{ level, rationale, advice, red_flags, source, disclaimer }`,
@@ -118,16 +118,20 @@ service fails, so that I am never left with a crash or silently wrong advice.
 
 **Acceptance Criteria:**
 1. IF the LLM provider raises an error (network, auth, rate limit) THEN the system
-   SHALL return a conservative assessment with level `URGENT` and
+   SHALL return a conservative assessment with level `HIGH` and
    `source = "fallback"`.
-2. IF the provider reply cannot be parsed into a valid level + rationale + advice
+2. IF the provider reply cannot be parsed into a valid urgency + recommendation
    THEN the system SHALL return the same conservative fallback.
 3. WHEN a fallback occurs THEN the system SHALL advise contacting a healthcare
    provider and SHALL NOT crash.
 
 **Edge Cases:**
-- Malformed JSON, missing fields, empty rationale/advice, unknown level name, or a
-  non-object reply all trigger the fallback.
+- Malformed JSON, a missing `urgency`/`recommendation` field, an empty
+  recommendation, an unknown urgency bucket, or a non-object reply all trigger
+  the fallback. (The wire reply is `{urgency, recommendation, disclaimer}`; the
+  `urgency` bucket — `low`/`medium`/`high`/`emergency` — is mapped onto the
+  `EscalationLevel` enum, and the model's `disclaimer` is discarded in favor of
+  the standing one.)
 - A provider reply wrapped in a ```` ```json ```` code fence is still parsed
   successfully (not a failure).
 
@@ -326,7 +330,7 @@ and the matching cases in `test_gemini_adapter.py`.
 
 ## Out of Scope (current build)
 
-- Intermediate deterministic floors (e.g. `URGENT`/`PROMPT` for specific
+- Intermediate deterministic floors (e.g. `HIGH`/`MEDIUM` for specific
   concerning-but-not-emergency phrases). The max-of-both mechanism supports them
   (Req 10), but the rules themselves await clinical review.
 - Multi-turn / conversational triage and follow-up questions.

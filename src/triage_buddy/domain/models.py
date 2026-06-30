@@ -13,16 +13,19 @@ from enum import IntEnum
 class EscalationLevel(IntEnum):
     """How urgently the patient should seek care.
 
-    Ordered by severity so levels compare directly (``EMERGENCY > ROUTINE``),
-    which lets the core take the *more severe* of two signals when combining
+    Ordered by severity so levels compare directly (``EMERGENCY > LOW``), which
+    lets the core take the *more severe* of two signals when combining
     deterministic safety rules with an LLM's suggestion.
+
+    The names match the wire vocabulary the model speaks (``low``/``medium``/
+    ``high``/``emergency``), so a parsed urgency maps straight to a member via
+    ``from_name`` with no intermediate bucketing.
     """
 
-    SELF_CARE = 1
-    ROUTINE = 2
-    PROMPT = 3
-    URGENT = 4
-    EMERGENCY = 5
+    LOW = 1
+    MEDIUM = 2
+    HIGH = 3
+    EMERGENCY = 4
 
     @property
     def label(self) -> str:
@@ -35,7 +38,7 @@ class EscalationLevel(IntEnum):
 
     @classmethod
     def from_name(cls, name: str) -> "EscalationLevel":
-        """Parse a level from a (case-insensitive) name, e.g. ``"urgent"``.
+        """Parse a level from a (case-insensitive) name, e.g. ``"high"``.
 
         Raises ``ValueError`` for anything unrecognized so callers can decide
         on a conservative fallback rather than silently guessing.
@@ -47,18 +50,16 @@ class EscalationLevel(IntEnum):
 
 
 _LEVEL_LABELS = {
-    EscalationLevel.SELF_CARE: "Self-care",
-    EscalationLevel.ROUTINE: "Routine",
-    EscalationLevel.PROMPT: "Prompt",
-    EscalationLevel.URGENT: "Urgent",
+    EscalationLevel.LOW: "Low",
+    EscalationLevel.MEDIUM: "Medium",
+    EscalationLevel.HIGH: "High",
     EscalationLevel.EMERGENCY: "Emergency",
 }
 
 _LEVEL_ACTIONS = {
-    EscalationLevel.SELF_CARE: "Manage at home and monitor your symptoms.",
-    EscalationLevel.ROUTINE: "Schedule a routine appointment with your provider.",
-    EscalationLevel.PROMPT: "See a healthcare provider within the next 24–48 hours.",
-    EscalationLevel.URGENT: "Seek care today — visit urgent care or call your provider now.",
+    EscalationLevel.LOW: "Manage at home with rest and monitor your symptoms.",
+    EscalationLevel.MEDIUM: "See a doctor for evaluation in the next day or two.",
+    EscalationLevel.HIGH: "Seek prompt medical attention today — visit urgent care or call your provider now.",
     EscalationLevel.EMERGENCY: "Call emergency services (911) or go to the ER immediately.",
 }
 

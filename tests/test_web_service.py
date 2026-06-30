@@ -11,7 +11,7 @@ from triage_buddy.domain.models import EscalationLevel, TriageAssessment
 def test_run_triage_success_with_mock():
     status, body = run_triage(description="mild runny nose", provider="mock")
     assert status == 200
-    assert body["level"] == "SELF_CARE"
+    assert body["level"] == "LOW"
     assert body["disclaimer"]
     assert body["source"] == "llm"
 
@@ -62,7 +62,7 @@ def test_provider_health_unknown_provider_is_503():
 
 def test_assessment_to_dict_shape():
     a = TriageAssessment(
-        level=EscalationLevel.URGENT,
+        level=EscalationLevel.HIGH,
         rationale="r",
         advice="a",
         red_flags=("x",),
@@ -71,9 +71,9 @@ def test_assessment_to_dict_shape():
     )
     d = assessment_to_dict(a)
     assert d == {
-        "level": "URGENT",
-        "label": "Urgent",
-        "action": EscalationLevel.URGENT.action,
+        "level": "HIGH",
+        "label": "High",
+        "action": EscalationLevel.HIGH.action,
         "rationale": "r",
         "advice": "a",
         "red_flags": ["x"],

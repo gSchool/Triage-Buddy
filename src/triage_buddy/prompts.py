@@ -3,6 +3,14 @@
 This bridges the domain's ``SymptomReport`` to the generic LLM port and back. It
 lives just outside ``domain`` because it knows the wire shape we ask providers
 for (a small JSON object), but it imports no provider SDK.
+
+The wire's 4-bucket urgency (``low``/``medium``/``high``/``emergency``) matches
+the ``EscalationLevel`` member names one-to-one, so a parsed urgency maps
+straight to a level via ``from_name`` — no intermediate bucketing. The model is
+also *asked* to flag emergencies and emit a disclaimer, but neither is trusted
+here: the domain's deterministic safety floor remains the source of truth for
+red flags, and the domain appends the standing disclaimer — so the model's
+``disclaimer`` field is parsed-and-discarded.
 """
 
 from __future__ import annotations
@@ -13,22 +21,43 @@ from dataclasses import dataclass
 from triage_buddy.domain.models import EscalationLevel, SymptomReport
 from triage_buddy.ports.llm import LLMRequest
 
-_LEVEL_NAMES = ", ".join(level.name for level in EscalationLevel)
+SYSTEM_PROMPT = """\
+You are a medical triage assistant. A patient will describe their symptoms, \
+and you assess how urgently they should seek care and what they should do next.
 
-SYSTEM_PROMPT = f"""\
-You are a cautious medical triage assistant. Given a patient's described \
-symptoms, judge how urgently they should seek care. You do not diagnose.
+Always respond with valid JSON matching exactly this schema:
+{
+  "urgency": one of "low", "medium", "high", or "emergency",
+  "recommendation": a short string describing what the patient should do next,
+  "disclaimer": a string that explicitly states this is not a substitute for \
+professional medical advice
+}
 
-When unsure, escalate: prefer the more urgent level. Account for any age, sex, \
-and duration provided.
-
-Respond with ONLY a JSON object, no prose, in exactly this shape:
-{{
-  "level": "<one of: {_LEVEL_NAMES}>",
-  "rationale": "<one or two sentences explaining the level>",
-  "advice": "<concrete next step for the patient>"
-}}"""
-
+Rules you must always follow:
+- Set "urgency" to exactly one of: "low", "medium", "high", "emergency".
+- Never diagnose a condition. Only suggest appropriate next steps (e.g. rest \
+and monitor, see a doctor, go to urgent care, call emergency services).
+- The "disclaimer" field must always include the phrase "not a substitute for \
+professional medical advice".
+- For any symptoms that suggest a medical emergency — including chest pain, \
+difficulty breathing, or stroke symptoms (such as face drooping, arm weakness, \
+or slurred speech) — always set "urgency" to "emergency" and recommend calling \
+emergency services immediately.
+- For mild, self-limiting illness (e.g. common cold, minor sore throat), the \
+recommendation should advise the patient to rest and drink plenty of fluids.
+- If a patient reports feeling unwell or "not right" but gives no specific or \
+severe symptoms, set "urgency" to "medium" and recommend they see a doctor for \
+evaluation. Do not dismiss vague but real concerns as "low".
+- Never use the word "wait" in the recommendation. For emergencies, instruct \
+the patient to call 911 or emergency services immediately.
+- Only use the word "emergency" in the recommendation when "urgency" is \
+"emergency". For lower urgencies, phrase escalation as "seek prompt medical \
+attention" or "see a doctor" instead.
+- When the patient is an infant or child, first assess the urgency as you would \
+for an adult with the same symptoms, then raise it by one level (low -> medium, \
+medium -> high, high -> emergency; "emergency" is already the maximum). This \
+applies only when the child is the patient: if a child is merely mentioned but \
+the symptoms described are an adult's own, do not escalate."""
 
 @dataclass(frozen=True)
 class TriageDraft:
@@ -58,6 +87,12 @@ def build_request(report: SymptomReport) -> LLMRequest:
 def parse_draft(text: str) -> TriageDraft:
     """Parse a provider reply into a ``TriageDraft``.
 
+    Expects the wire schema ``{"urgency", "recommendation", "disclaimer"}``. The
+    ``urgency`` maps directly onto an ``EscalationLevel`` by name;
+    ``recommendation`` becomes the draft's advice; a rationale is synthesized
+    (the model no longer returns one). The model's ``disclaimer`` is
+    intentionally ignored — the domain appends its own standing disclaimer.
+
     Tolerates a leading/trailing code fence and surrounding whitespace, since
     models often wrap JSON in ```json fences. Raises ``DraftParseError`` on any
     malformed or incomplete reply so the core can fail safe.
@@ -72,15 +107,22 @@ def parse_draft(text: str) -> TriageDraft:
         raise DraftParseError("reply JSON was not an object")
 
     try:
-        level = EscalationLevel.from_name(str(data["level"]))
-        rationale = str(data["rationale"]).strip()
-        advice = str(data["advice"]).strip()
-    except (KeyError, ValueError) as exc:
+        urgency = str(data["urgency"]).strip()
+        advice = str(data["recommendation"]).strip()
+    except KeyError as exc:
+        raise DraftParseError(f"missing field: {exc}") from exc
+
+    try:
+        level = EscalationLevel.from_name(urgency)
+    except ValueError as exc:
         raise DraftParseError(str(exc)) from exc
 
-    if not rationale or not advice:
-        raise DraftParseError("rationale and advice must be non-empty")
+    if not advice:
+        raise DraftParseError("recommendation must be non-empty")
 
+    rationale = (
+        f"The described symptoms suggest a {level.label.lower()} urgency level of care."
+    )
     return TriageDraft(level=level, rationale=rationale, advice=advice)
 
 
