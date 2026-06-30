@@ -26,6 +26,11 @@ python3 -m venv .venv && .venv/bin/python -m pip install -e ".[dev]"
 # Run a single test
 .venv/bin/python -m pytest tests/test_triage.py::test_red_flag_forces_emergency_and_skips_llm
 
+# Run the end-to-end eval suite (top-level evals/, NOT collected by the default run).
+# Provider via EVAL_PROVIDER env var (default mock). These score a model, not the code.
+.venv/bin/python -m pytest evals/
+EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v
+
 # Run the CLI (mock provider, default — offline, no key)
 .venv/bin/triage-buddy "mild sore throat for two days"
 .venv/bin/triage-buddy --age 34 --duration "3 days" "high fever that won't go away"
@@ -51,7 +56,7 @@ cp .env.example .env   # then put your GROQ_API_KEY in .env (git-ignored)
 ### Configuration / secrets
 
 Secrets load from a git-ignored `.env` in the repo root via `triage_buddy.config.load_dotenv`,
-called at CLI startup. A real exported env var always overrides `.env`. Template: `.env.example`.
+called at entry-point startup (CLI and web; the eval suite calls it too). A real exported env var always overrides `.env`. Template: `.env.example`.
 - `GROQ_API_KEY` — required for `--provider groq`.
 
 There is no lint config yet.
@@ -78,6 +83,7 @@ Keep domain/core logic free of framework, transport, and provider concerns; push
     - `templates/page.html`: the single Jinja2 page template (form + error card + result card + styles). Packaged via `[tool.setuptools.package-data]`.
 - **`src/triage_buddy/config.py`** — `load_dotenv()` (stdlib, no dep), called by adapter entry points.
 - **`src/triage_buddy/composition.py`** — composition root. The only place that picks concrete adapters (`build_service`/`build_provider`). Providers: `mock`, `groq`, `gemini`.
+- **`evals/`** (top-level, outside the package — like `tests/`) — end-to-end eval suite. `test_cases.py` is a pytest module parametrized over `cases.json`: each case runs through `build_service(...).assess(...)` and is checked for the resulting urgency bucket plus `must_contain`/`must_not_contain` phrases. The 5-level enum is collapsed onto the cases' 4 buckets (`low`/`medium`/`high`/`emergency`); the standing `DISCLAIMER` is excluded from the searched text (it contains "emergency"). **Evals are not tests** — they score a model's judgment, not code correctness, so they're excluded from the default run (`testpaths = ["tests"]`) and run on demand via `pytest evals/`. Provider chosen by the `EVAL_PROVIDER` env var (default `mock`, which won't satisfy the prose checks — these score a real provider). Imports resolve via `pythonpath = ["src"]`, same as the unit tests; nothing is shipped in the wheel.
 
 ### Extending
 

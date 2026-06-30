@@ -90,6 +90,25 @@ fallback. Providers also get bounded per-request timeouts and retry-with-backoff
 .venv/bin/python -m pytest tests/test_triage.py::test_red_flag_forces_emergency_and_skips_llm
 ```
 
+## Evals
+
+An end-to-end eval suite runs a set of symptom scenarios through the full triage
+pipeline and checks each one for the expected urgency bucket plus required/forbidden
+phrases. It lives in a top-level `evals/` directory (sibling of `tests/`) and is
+written as a pytest module, but is **excluded from the default `pytest` run** — run
+it explicitly. Pick a provider with the `EVAL_PROVIDER` env var (default `mock`):
+
+```bash
+.venv/bin/python -m pytest evals/                       # mock provider (default)
+EVAL_PROVIDER=groq .venv/bin/python -m pytest evals/ -v # against a real LLM
+```
+
+Evals are *not* tests: they score a provider's judgment rather than verify code
+correctness, so failures are informative rather than regressions, and they're kept
+out of the CI gate. The default `mock` provider is keyword-driven and won't satisfy
+the prose-level checks — these cases are meant to score a *real* provider
+(`EVAL_PROVIDER=groq` / `gemini`, with a key set).
+
 ## Architecture
 
 Hexagonal (ports & adapters). The domain core holds no framework, transport, or SDK
@@ -106,6 +125,10 @@ adapters/
   web/         FastAPI app + Jinja2 template: form, JSON API, /healthz
 composition.py composition root — the only place concrete adapters are chosen
 ```
+
+The `tests/` and `evals/` directories sit outside the package (not shipped in the
+wheel): `tests/` is the pytest suite that gates correctness; `evals/` scores model
+judgment and runs on demand (see [Evals](#evals)).
 
 - **Add an LLM provider:** implement `LLMProvider.generate` under `adapters/llm/`,
   then add a branch in `composition.build_provider`. Core, CLI, and web are untouched.
