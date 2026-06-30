@@ -37,7 +37,7 @@ from triage_buddy.composition import build_service
 from triage_buddy.config import load_dotenv
 from triage_buddy.domain.models import EscalationLevel, SymptomReport, TriageAssessment
 
-from _match import Judge, build_judge
+from _judge import Judge, build_judge
 
 # The domain enum names match the cases' urgency buckets one-to-one, so the
 # bucket is just the level name lower-cased — no mapping table needed.
