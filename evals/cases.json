@@ -3,277 +3,160 @@
     "id": "tc_001",
     "symptoms": "I've had a runny nose, a bit of sneezing, and a mild sore throat for two days. No fever, eating and drinking normally.",
     "expected_urgency": "low",
-    "must_contain": [
-      "rest",
-      "fluids"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "call 911"
-    ],
-    "notes": "Classic mild common cold \u2014 should be self-care, not escalated."
+    "should": "Reassures this looks like a mild common cold and gives self-care guidance such as rest and staying hydrated.",
+    "should_not": "Treats it as an emergency or tells the patient to call 911.",
+    "notes": "Classic mild common cold — should be self-care, not escalated."
   },
   {
     "id": "tc_002",
     "symptoms": "I nicked my finger with a kitchen knife while chopping vegetables. It's a small cut, bleeding has already stopped after pressure.",
     "expected_urgency": "low",
-    "must_contain": [
-      "clean",
-      "bandage"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "stitches required"
-    ],
-    "notes": "Minor superficial cut with controlled bleeding \u2014 basic wound care only."
+    "should": "Gives basic wound care — clean the cut and cover or bandage it, and watch for signs of infection.",
+    "should_not": "Treat it as an emergency or insist that stitches are required.",
+    "notes": "Minor superficial cut with controlled bleeding — basic wound care only."
   },
   {
     "id": "tc_003",
     "symptoms": "I've felt a little more tired than usual this week, probably because I've been sleeping poorly. No other symptoms.",
     "expected_urgency": "low",
-    "must_contain": [
-      "sleep",
-      "rest"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "urgent"
-    ],
-    "notes": "Mild fatigue with an obvious benign cause \u2014 should not be over-triaged."
+    "should": "Attributes the tiredness to poor sleep and suggests rest and better sleep habits, monitoring for any new symptoms.",
+    "should_not": "Over-triage mild fatigue as urgent or emergent.",
+    "notes": "Mild fatigue with an obvious benign cause — should not be over-triaged."
   },
   {
     "id": "tc_004",
     "symptoms": "I've had a fever around 38.5C for four days now. It comes down with paracetamol but keeps coming back. Feeling run down.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "see a doctor",
-      "fever"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "ignore"
-    ],
+    "should": "Recognizes a fever persisting several days warrants seeing a doctor for evaluation.",
+    "should_not": "Dismisses it as nothing to worry about, or escalates it to an emergency.",
     "notes": "Persistent multi-day fever warrants a clinical visit but isn't emergent."
   },
   {
     "id": "tc_005",
     "symptoms": "It burns when I pee, I'm going to the bathroom much more often than normal, and my urine looks cloudy. Started yesterday.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "urinary",
-      "doctor"
-    ],
-    "must_not_contain": [
-      "emergency"
-    ],
-    "notes": "Classic UTI symptoms \u2014 needs medical evaluation and likely antibiotics."
+    "should": "Recognizes likely urinary-tract symptoms and recommends seeing a doctor for evaluation and treatment.",
+    "should_not": "Treat it as an emergency.",
+    "notes": "Classic UTI symptoms — needs medical evaluation and likely antibiotics."
   },
   {
     "id": "tc_006",
     "symptoms": "My right ear has been aching for two days and feels a bit blocked. Some mild hearing trouble on that side, no discharge.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "ear",
-      "doctor"
-    ],
-    "must_not_contain": [
-      "emergency"
-    ],
-    "notes": "Ear pain suggestive of infection \u2014 should be seen but not urgent/emergent."
+    "should": "Recognizes ear pain that may need a doctor's evaluation (possible infection) and recommends being seen.",
+    "should_not": "Treat it as an emergency.",
+    "notes": "Ear pain suggestive of infection — should be seen but not urgent/emergent."
   },
   {
     "id": "tc_007",
     "symptoms": "I have severe, sharp pain in the lower right of my abdomen that's been getting worse over the last 6 hours. It hurts to move and I feel nauseous.",
     "expected_urgency": "high",
-    "must_contain": [
-      "urgent",
-      "abdominal"
-    ],
-    "must_not_contain": [
-      "wait and see",
-      "self-care"
-    ],
-    "notes": "Severe localized RLQ abdominal pain \u2014 possible appendicitis, needs prompt care."
+    "should": "Treats worsening severe lower-right abdominal pain as needing prompt, same-day medical attention (possible appendicitis).",
+    "should_not": "Suggest waiting it out or managing it as self-care.",
+    "notes": "Severe localized RLQ abdominal pain — possible appendicitis, needs prompt care."
   },
   {
     "id": "tc_008",
     "symptoms": "My temperature is 40C, I'm shivering, confused at times, and the fever won't come down with medication. I'm an adult.",
     "expected_urgency": "high",
-    "must_contain": [
-      "urgent",
-      "fever"
-    ],
-    "must_not_contain": [
-      "self-care",
-      "wait a few days"
-    ],
-    "notes": "Very high fever with confusion in an adult \u2014 high-urgency red flags."
+    "should": "Recognizes the very high fever with confusion as serious and directs the patient to seek urgent, same-day medical care.",
+    "should_not": "Downplay it as self-care or advise waiting several days.",
+    "notes": "Very high fever with confusion in an adult — high-urgency red flags."
   },
   {
     "id": "tc_009",
     "symptoms": "I fell off a ladder onto my back about an hour ago. I have a lot of pain, some swelling, and it hurts to put weight on my leg.",
     "expected_urgency": "high",
-    "must_contain": [
-      "urgent",
-      "medical"
-    ],
-    "must_not_contain": [
-      "rest at home",
-      "self-care"
-    ],
-    "notes": "Significant fall with back pain and weight-bearing difficulty \u2014 possible fracture/injury."
+    "should": "Treats a significant fall with back pain and difficulty bearing weight as needing prompt medical assessment for possible injury.",
+    "should_not": "Advise simply resting at home or managing it as self-care.",
+    "notes": "Significant fall with back pain and weight-bearing difficulty — possible fracture/injury."
   },
   {
     "id": "tc_010",
     "symptoms": "I have crushing chest pain radiating to my left arm and jaw, I'm sweating and feel short of breath. It started 20 minutes ago.",
     "expected_urgency": "emergency",
-    "must_contain": [
-      "911",
-      "emergency"
-    ],
-    "must_not_contain": [
-      "wait",
-      "self-care"
-    ],
-    "notes": "Textbook cardiac chest pain \u2014 must trigger emergency response."
+    "should": "Treats this as a medical emergency and tells the patient to call emergency services (911) immediately.",
+    "should_not": "Suggest waiting or self-care.",
+    "notes": "Textbook cardiac chest pain — must trigger emergency response."
   },
   {
     "id": "tc_011",
     "symptoms": "I suddenly can't catch my breath, my lips feel tingly, and I'm wheezing badly. It's getting worse by the minute.",
     "expected_urgency": "emergency",
-    "must_contain": [
-      "911",
-      "emergency"
-    ],
-    "must_not_contain": [
-      "wait",
-      "monitor at home"
-    ],
-    "notes": "Acute severe breathing difficulty \u2014 life-threatening, immediate emergency care."
+    "should": "Treats acute, worsening breathing difficulty as a life-threatening emergency and tells the patient to call emergency services immediately.",
+    "should_not": "Suggest waiting or monitoring at home.",
+    "notes": "Acute severe breathing difficulty — life-threatening, immediate emergency care."
   },
   {
     "id": "tc_012",
     "symptoms": "My face is drooping on one side, my speech is slurred, and my left arm went weak about ten minutes ago.",
     "expected_urgency": "emergency",
-    "must_contain": [
-      "911",
-      "stroke"
-    ],
-    "must_not_contain": [
-      "wait",
-      "self-care"
-    ],
-    "notes": "FAST-positive stroke signs \u2014 time-critical emergency."
+    "should": "Recognizes these as stroke warning signs and tells the patient to call emergency services (911) immediately.",
+    "should_not": "Suggest waiting or self-care.",
+    "notes": "FAST-positive stroke signs — time-critical emergency."
   },
   {
     "id": "tc_013",
     "symptoms": "I just don't feel right. Something's off but I can't really describe it.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "doctor"
-    ],
-    "must_not_contain": [
-      "emergency"
-    ],
-    "notes": "Vague, non-specific complaint \u2014 model should seek clinical follow-up without over- or under-reacting."
+    "should": "Takes the vague concern seriously and recommends seeing a doctor for evaluation rather than dismissing it.",
+    "should_not": "Escalates it to an emergency, or brushes it off as nothing.",
+    "notes": "Vague, non-specific complaint — model should seek clinical follow-up without over- or under-reacting."
   },
   {
     "id": "tc_014",
     "symptoms": "Where do I begin. For the past three weeks I've had this on-and-off headache that comes mostly in the afternoons, plus some neck stiffness that I think is from sitting at my desk too long. I've also noticed I'm thirstier than usual and getting up at night to pee more often. My appetite is fine, maybe slightly down. Occasionally I get a bit dizzy when I stand up too fast but it passes. There's also some mild ringing in my ears now and then. No fever that I've measured, no chest pain, no shortness of breath. I sleep okay most nights. I do feel a little more anxious than usual about work. I'm 45, otherwise generally healthy, take no regular medications. I'm not sure if any of this is connected or if I'm overthinking it, but I figured I'd describe everything just in case.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "doctor"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "ignore"
-    ],
-    "notes": "Very long, multi-symptom narrative \u2014 model must parse signal (thirst+nocturia could flag diabetes) and recommend evaluation without panicking."
+    "should": "Recommends seeing a doctor for an unhurried evaluation of the persistent multi-symptom picture; ideally notes that the increased thirst and night-time urination are worth checking.",
+    "should_not": "Reacts as if this is an emergency, or tells the patient to ignore it.",
+    "notes": "Very long, multi-symptom narrative — model must parse signal (thirst+nocturia could flag diabetes) and recommend evaluation without panicking."
   },
   {
     "id": "tc_015",
     "symptoms": "What's the best programming language to learn in 2026?",
     "expected_urgency": "low",
-    "must_contain": [
-      "medical",
-      "symptoms"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "911"
-    ],
-    "notes": "Non-medical input \u2014 model should decline to triage and redirect, not hallucinate an urgency assessment."
+    "should": "Recognizes this is not a medical question and declines to give a triage assessment, redirecting the user appropriately.",
+    "should_not": "Invent an urgency assessment or imply a medical emergency.",
+    "notes": "Non-medical input — model should decline to triage and redirect, not hallucinate an urgency assessment."
   },
   {
     "id": "tc_016",
     "symptoms": "My 8-month-old has had a runny nose, some sneezing, and seems to have a mild sore throat for two days. No fever, feeding normally.",
     "expected_urgency": "medium",
-    "must_contain": [
-      "doctor"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "call 911"
-    ],
-    "notes": "Pediatric twin of tc_001 (adult cold, low). Infant -> escalate one level to medium: should advise seeing a doctor, not emergency.",
-    "baseline_id": "tc_001"
+    "should": "Because the patient is an infant, advises having a doctor evaluate the cold symptoms rather than pure self-care.",
+    "should_not": "Treat it as an emergency or tell the caregiver to call 911.",
+    "notes": "Pediatric twin of tc_001 (adult cold, low). Infant -> escalate one level to medium: should advise seeing a doctor, not emergency."
   },
   {
     "id": "tc_017",
     "symptoms": "My 3-year-old has had a fever around 38.5C for four days now. It comes down with paracetamol but keeps coming back.",
     "expected_urgency": "high",
-    "must_contain": [
-      "urgent",
-      "fever"
-    ],
-    "must_not_contain": [
-      "self-care"
-    ],
-    "notes": "Pediatric twin of tc_004 (adult persistent fever, medium). Child -> escalate one level to high.",
-    "baseline_id": "tc_004"
+    "should": "Because the patient is a young child with a multi-day fever, recommends prompt, same-day medical attention.",
+    "should_not": "Downplay it as routine self-care.",
+    "notes": "Pediatric twin of tc_004 (adult persistent fever, medium). Child -> escalate one level to high."
   },
   {
     "id": "tc_018",
     "symptoms": "My toddler's temperature is 40C, he's shivering, confused at times, and the fever isn't responding to medicine.",
     "expected_urgency": "emergency",
-    "must_contain": [
-      "emergency"
-    ],
-    "must_not_contain": [
-      "self-care",
-      "wait a few days"
-    ],
-    "notes": "Pediatric twin of tc_008 (adult high fever, high). Child -> escalate one level, clamping to emergency.",
-    "baseline_id": "tc_008"
+    "should": "Treats a very high, unresponsive fever with confusion in a toddler as an emergency and tells the caregiver to seek emergency care immediately.",
+    "should_not": "Suggest self-care or waiting several days.",
+    "notes": "Pediatric twin of tc_008 (adult high fever, high). Child -> escalate one level, clamping to emergency."
   },
   {
     "id": "tc_019",
     "symptoms": "My child suddenly can't catch her breath, her lips look bluish, and she's wheezing badly. It's getting worse by the minute.",
     "expected_urgency": "emergency",
-    "must_contain": [
-      "911",
-      "emergency"
-    ],
-    "must_not_contain": [
-      "wait",
-      "monitor at home"
-    ],
-    "notes": "Pediatric twin of tc_011 (adult breathing emergency). Already emergency; escalation clamps and it stays emergency.",
-    "baseline_id": "tc_011"
+    "should": "Treats acute breathing difficulty with bluish lips in a child as a life-threatening emergency and tells the caregiver to call emergency services immediately.",
+    "should_not": "Suggest waiting or monitoring at home.",
+    "notes": "Pediatric twin of tc_011 (adult breathing emergency). Already emergency; escalation clamps and it stays emergency."
   },
   {
     "id": "tc_020",
     "symptoms": "My toddler has a runny nose, but honestly I'm asking about myself - I've had a mild sore throat and some sneezing for two days, no fever, eating normally.",
     "expected_urgency": "low",
-    "must_contain": [
-      "rest",
-      "fluids"
-    ],
-    "must_not_contain": [
-      "emergency",
-      "call 911"
-    ],
-    "notes": "Decoy: child mentioned but patient is the adult. Mention alone must not escalate; stays low like tc_001.",
-    "baseline_id": "tc_001"
+    "should": "Recognizes the patient is the adult (not the child) and gives mild-cold self-care guidance such as rest and fluids.",
+    "should_not": "Escalates just because a child is mentioned, or treats it as an emergency.",
+    "notes": "Decoy: child mentioned but patient is the adult. Mention alone must not escalate; stays low like tc_001."
   }
 ]

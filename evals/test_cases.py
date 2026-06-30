@@ -37,7 +37,7 @@ from triage_buddy.composition import build_service
 from triage_buddy.config import load_dotenv
 from triage_buddy.domain.models import EscalationLevel, SymptomReport, TriageAssessment
 
-from _match import Judge, build_judge, contains, excludes
+from _match import Judge, build_judge
 
 # The domain enum names match the cases' urgency buckets one-to-one, so the
 # bucket is just the level name lower-cased — no mapping table needed.
@@ -76,45 +76,37 @@ def service(request):
 
 
 class _LazyJudge:
-    """A ``Judge``-shaped wrapper that builds the real judge on first use, so
-    runs where every needle is satisfied literally/by synonym need no judge key.
+    """A ``Judge``-shaped wrapper that builds the real judge on first use, so a
+    run with no rubrics to grade needs no judge key.
 
-    Exposes ``satisfies`` so it drops straight into ``_match.contains/excludes``;
-    building the underlying judge may raise ``JudgeUnavailable``."""
+    Exposes ``holds`` so it drops straight into the rubric checks; building the
+    underlying judge may raise ``JudgeUnavailable``."""
 
     def __init__(self, provider_name: str) -> None:
         self._provider_name = provider_name
         self._judge: Judge | None = None
 
-    def satisfies(self, text: str, requirement: str) -> bool:
+    def holds(self, advice: str, rubric: str) -> bool:
         if self._judge is None:
             self._judge = build_judge(self._provider_name)  # raises JudgeUnavailable
-        return self._judge.satisfies(text, requirement)
+        return self._judge.holds(advice, rubric)
 
 
 @pytest.fixture(scope="module")
 def judge(request):
-    """A lazily-built judge, used only when literal/synonym tiers don't resolve."""
+    """A lazily-built judge used to grade ``should``/``should_not`` rubrics."""
     load_dotenv()
     return _LazyJudge(_judge_provider_name(request))
 
 
-def _searchable_text(assessment: TriageAssessment) -> str:
-    """User-visible text from an assessment, lower-cased, for substring checks.
+def _advice_text(assessment: TriageAssessment) -> str:
+    """The model's user-visible advice, for the judge to grade.
 
-    The standing ``disclaimer`` is deliberately excluded: it's boilerplate
-    present on every assessment and itself contains the word "emergency", which
-    would spuriously trip every ``must_not_contain: "emergency"`` check. The
-    cases mean to test the model's *advice*, not the fixed legal text.
+    The standing ``disclaimer`` is excluded — it's fixed boilerplate, not the
+    model's judgment — as is the deterministic ``action`` text; the rubric is
+    about what the *model* said (rationale + advice), not the level's canned line.
     """
-    parts = [
-        assessment.level.label,
-        assessment.level.action,
-        assessment.rationale,
-        assessment.advice,
-        *assessment.red_flags,
-    ]
-    return "\n".join(parts).lower()
+    return f"{assessment.rationale}\n{assessment.advice}".strip()
 
 
 # Parametrize over the cases, labelling each subtest by its case id.
@@ -126,11 +118,12 @@ _IDS = [c.get("id", str(i)) for i, c in enumerate(_CASES)]
 def test_eval_case(case: dict, service, judge) -> None:
     report = SymptomReport(description=case["symptoms"])
     assessment = service.assess(report)
-    text = _searchable_text(assessment)
+    advice = _advice_text(assessment)
 
     failures: list[str] = []
 
-    # 1. Urgency bucket.
+    # 1. Urgency bucket — deterministic, judge-free (the hard guard, esp. for
+    #    emergencies: a flaky judge can never let a non-escalated emergency pass).
     expected = str(case.get("expected_urgency", "")).strip().lower()
     actual_bucket = assessment.level.name.lower()
     if expected not in _BUCKETS:
@@ -141,15 +134,15 @@ def test_eval_case(case: dict, service, judge) -> None:
             f"(level {assessment.level.name})"
         )
 
-    # 2. must_contain — literal, then synonym, then LLM judge (semantic).
-    for needle in case.get("must_contain", []):
-        if not contains(needle, text, judge):
-            failures.append(f"must_contain {needle!r} MISSING (no literal/synonym/semantic match)")
+    # 2. should — the advice must satisfy this rubric (judge).
+    should = case.get("should")
+    if should and not judge.holds(advice, should):
+        failures.append(f"should NOT met: {should!r}")
 
-    # 3. must_not_contain — same tiers, inverted.
-    for needle in case.get("must_not_contain", []):
-        if not excludes(needle, text, judge):
-            failures.append(f"must_not_contain {needle!r} PRESENT (should not be)")
+    # 3. should_not — the advice must NOT do this (judge).
+    should_not = case.get("should_not")
+    if should_not and judge.holds(advice, should_not):
+        failures.append(f"should_not VIOLATED: {should_not!r}")
 
     if failures:
         pytest.fail(

@@ -96,11 +96,11 @@ fallback. Providers also get bounded per-request timeouts and retry-with-backoff
 ## Evals
 
 An end-to-end eval suite runs a set of symptom scenarios through the full triage
-pipeline and checks each one for the expected urgency bucket plus required/forbidden
-phrases. It lives in a top-level `evals/` directory (sibling of `tests/`) and is
-written as a pytest module, but is **excluded from the default `pytest` run** — run
-it explicitly. Pick the provider with `--provider` (or the `EVAL_PROVIDER` env var);
-default is `mock`:
+pipeline and checks each one against the expected urgency plus a natural-language
+rubric for the advice. It lives in a top-level `evals/` directory (sibling of
+`tests/`) and is written as a pytest module, but is **excluded from the default
+`pytest` run** — run it explicitly. Pick the provider with `--provider` (or the
+`EVAL_PROVIDER` env var); default is `mock`:
 
 ```bash
 .venv/bin/python -m pytest evals/ --provider groq -v             # evaluate groq
@@ -112,15 +112,22 @@ Evals are *not* tests: they score a provider's judgment rather than verify code
 correctness, so failures are informative rather than regressions, and they're kept
 out of the CI gate.
 
-**Phrase checks are semantic, not literal.** A `must_contain` like `"see a doctor"`
-is satisfied by any equivalent wording ("seek medical attention"), and `"fluids"` by
-"drink tea or water". Each needle is graded in three tiers, cheapest first: exact
-substring, then curated synonym groups, then an **LLM judge** for open-ended
-paraphrase. The judge defaults to `--provider` but can be set with `--judge-provider`
-(or `EVAL_JUDGE_PROVIDER`). Because the judge needs real language understanding, the
-`mock` provider **cannot** judge — under `--provider mock`, any case that reaches the
-judge tier is a hard error. In short: these cases are meant to score a *real* provider
-(`groq` / `gemini`, with a key set), not the offline mock.
+Each case in `cases.json` carries an `expected_urgency` plus `should` / `should_not`
+rubrics that describe, in plain language, the *spirit* of a good answer (e.g.
+`should: "directs the patient to urgent, same-day care"`, `should_not: "downplays it
+as self-care"`) — not required substrings. Two kinds of check run per case:
+
+- **`expected_urgency`** — an exact, deterministic level match (no model involved).
+  This is the hard guard, so a flaky judge can never let a non-escalated emergency pass.
+- **`should` / `should_not`** — graded by an **LLM judge** that reads the model's advice
+  and answers whether each rubric holds, judging meaning rather than wording.
+
+The judge defaults to `--provider` but can be set with `--judge-provider` (or
+`EVAL_JUDGE_PROVIDER`). Because grading needs real language understanding, the `mock`
+provider **cannot** judge — under `--provider mock`, grading is a hard error. In short:
+these cases score a *real* provider (`groq` / `gemini`, with a key set), not the
+offline mock. Note that scores vary run to run — the model is non-deterministic even
+at temperature 0, mostly on the urgency level.
 
 ## Architecture
 
