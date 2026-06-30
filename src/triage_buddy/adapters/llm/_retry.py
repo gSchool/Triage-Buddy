@@ -21,6 +21,21 @@ from triage_buddy.ports.llm import LLMError
 
 T = TypeVar("T")
 
+
+def is_rate_limit(exc: BaseException) -> bool:
+    """True if ``exc`` looks like an HTTP 429 / quota-exhaustion error.
+
+    Avoids importing SDK exception types (adapters load SDKs lazily): both the
+    Groq and Gemini SDKs put 429 on a ``status_code``/``code`` attribute, and
+    failing that the message names the condition. Best-effort and conservative —
+    a missed 429 just yields the generic failure message, never a wrong level.
+    """
+    for attr in ("status_code", "code"):
+        if getattr(exc, attr, None) == 429:
+            return True
+    text = str(exc).lower()
+    return "429" in text or "resource_exhausted" in text or "rate_limit" in text
+
 DEFAULT_TIMEOUT = 30.0  # seconds, per attempt
 DEFAULT_ATTEMPTS = 3
 DEFAULT_BASE_DELAY = 0.5  # seconds; doubled each retry

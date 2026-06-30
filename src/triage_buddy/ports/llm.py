@@ -36,6 +36,15 @@ class LLMError(Exception):
     """
 
 
+class RateLimitError(LLMError):
+    """A specific ``LLMError`` for provider rate limiting / quota exhaustion (429).
+
+    Subclasses ``LLMError`` so existing handlers and retry logic treat it the
+    same; the core distinguishes it only to tell the user the failure is
+    temporary ("the service is busy") rather than a generic breakdown.
+    """
+
+
 @runtime_checkable
 class LLMProvider(Protocol):
     """A swappable text-completion provider."""

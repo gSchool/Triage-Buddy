@@ -3,7 +3,7 @@ import json
 from triage_buddy.adapters.llm.mock import MockLLMProvider
 from triage_buddy.domain.models import EscalationLevel, SymptomReport
 from triage_buddy.domain.triage import TriageService
-from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse
+from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse, RateLimitError
 
 
 class StubProvider:
@@ -21,6 +21,11 @@ class StubProvider:
 class BoomProvider:
     def generate(self, request: LLMRequest) -> LLMResponse:
         raise LLMError("provider down")
+
+
+class RateLimitedProvider:
+    def generate(self, request: LLMRequest) -> LLMResponse:
+        raise RateLimitError("Groq rate limit: 429")
 
 
 def _report(desc="I have a sore throat"):
@@ -50,6 +55,17 @@ def test_falls_back_when_provider_errors():
     assessment = TriageService(llm=BoomProvider()).assess(_report())
     assert assessment.level is EscalationLevel.HIGH  # conservative, not EMERGENCY
     assert assessment.source == "fallback"
+    assert "busy" not in assessment.rationale.lower()  # generic, not rate-limit wording
+
+
+def test_rate_limit_fallback_says_busy_but_keeps_safe_level():
+    assessment = TriageService(llm=RateLimitedProvider()).assess(_report())
+    # Same fail-safe level + source as any fallback...
+    assert assessment.level is EscalationLevel.HIGH
+    assert assessment.source == "fallback"
+    # ...but the message tells the user it was temporary and to retry.
+    assert "busy" in assessment.rationale.lower()
+    assert "try again" in assessment.rationale.lower()
 
 
 def test_falls_back_when_reply_is_garbage():

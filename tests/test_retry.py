@@ -1,7 +1,28 @@
 import pytest
 
-from triage_buddy.adapters.llm._retry import call_with_retries
+from triage_buddy.adapters.llm._retry import call_with_retries, is_rate_limit
 from triage_buddy.ports.llm import LLMError
+
+
+class _StatusErr(Exception):
+    def __init__(self, status_code):
+        super().__init__("boom")
+        self.status_code = status_code
+
+
+@pytest.mark.parametrize(
+    "exc,expected",
+    [
+        (_StatusErr(429), True),                                  # status_code attr
+        (_StatusErr(500), False),
+        (Exception("Error code: 429 - rate_limit_exceeded"), True),   # groq string
+        (Exception("429 RESOURCE_EXHAUSTED"), True),                  # gemini string
+        (Exception("connection reset"), False),
+        (Exception("401 unauthorized"), False),
+    ],
+)
+def test_is_rate_limit(exc, expected):
+    assert is_rate_limit(exc) is expected
 
 
 def test_returns_immediately_on_success():

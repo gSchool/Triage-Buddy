@@ -35,7 +35,7 @@ from triage_buddy.prompts import (
     build_request,
     parse_draft,
 )
-from triage_buddy.ports.llm import LLMError, LLMProvider
+from triage_buddy.ports.llm import LLMError, LLMProvider, RateLimitError
 
 # Level used when the LLM can't be trusted (error or unparseable reply).
 # HIGH, not EMERGENCY: conservative (don't sit on it) without auto-dialing 911.
@@ -60,6 +60,8 @@ class TriageService:
 
         try:
             draft = parse_draft(self._llm.generate(build_request(report)).text)
+        except RateLimitError:
+            return self._fallback(max(floor_level, _FALLBACK_LEVEL), rate_limited=True)
         except (LLMError, DraftParseError):
             return self._fallback(max(floor_level, _FALLBACK_LEVEL))
 
@@ -104,13 +106,23 @@ class TriageService:
         )
 
     @staticmethod
-    def _fallback(level: EscalationLevel) -> TriageAssessment:
-        """Conservative result used when the provider can't be trusted."""
+    def _fallback(level: EscalationLevel, *, rate_limited: bool = False) -> TriageAssessment:
+        """Conservative result used when the provider can't be trusted.
+
+        ``rate_limited`` only changes the *message* (the assessment service was
+        temporarily busy, so it's worth trying again) — the conservative level
+        and the fail-safe advice are unchanged.
+        """
+        if rate_limited:
+            rationale = (
+                "The assessment service is busy right now and couldn't complete "
+                "an automated check of your symptoms. Please try again in a moment."
+            )
+        else:
+            rationale = "We couldn't complete an automated assessment of your symptoms."
         return TriageAssessment(
             level=level,
-            rationale=(
-                "We couldn't complete an automated assessment of your symptoms."
-            ),
+            rationale=rationale,
             advice=(
                 "To be safe, contact a healthcare provider or urgent care to "
                 "describe your symptoms in person."

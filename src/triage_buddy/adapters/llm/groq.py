@@ -18,8 +18,9 @@ from triage_buddy.adapters.llm._retry import (
     DEFAULT_BASE_DELAY,
     DEFAULT_TIMEOUT,
     call_with_retries,
+    is_rate_limit,
 )
-from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse
+from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse, RateLimitError
 
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
 
@@ -94,6 +95,8 @@ class GroqProvider:
                 )
                 text = completion.choices[0].message.content or ""
             except Exception as exc:  # network, auth, rate limit, timeout
+                if is_rate_limit(exc):
+                    raise RateLimitError(f"Groq rate limit: {exc}") from exc
                 raise LLMError(f"Groq request failed: {exc}") from exc
             return LLMResponse(text=text)
 

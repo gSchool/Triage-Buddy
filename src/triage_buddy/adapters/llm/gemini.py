@@ -19,8 +19,9 @@ from triage_buddy.adapters.llm._retry import (
     DEFAULT_BASE_DELAY,
     DEFAULT_TIMEOUT,
     call_with_retries,
+    is_rate_limit,
 )
-from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse
+from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse, RateLimitError
 
 DEFAULT_MODEL = "gemini-2.5-flash"
 
@@ -101,6 +102,8 @@ class GeminiProvider:
                 )
                 text = completion.text or ""
             except Exception as exc:  # network, auth, rate limit, timeout
+                if is_rate_limit(exc):
+                    raise RateLimitError(f"Gemini rate limit: {exc}") from exc
                 raise LLMError(f"Gemini request failed: {exc}") from exc
             return LLMResponse(text=text)
 
