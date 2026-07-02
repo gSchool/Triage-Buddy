@@ -30,3 +30,20 @@ def test_cli_unknown_provider_reports_error(capsys):
     code = main(["--provider", "nope", "headache"])
     assert code == 3
     assert "Provider error" in capsys.readouterr().err
+
+
+def test_cli_forwards_model_option(monkeypatch):
+    import triage_buddy.adapters.cli.app as cli_app
+
+    captured = {}
+    real = cli_app.build_service
+
+    def fake(provider="mock", *, model=None):
+        captured["provider"] = provider
+        captured["model"] = model
+        return real(provider=provider)  # mock needs no key
+
+    monkeypatch.setattr(cli_app, "build_service", fake)
+    code = main(["--provider", "mock", "--model", "glm-4.7-air", "headache"])
+    assert code == 0
+    assert captured["model"] == "glm-4.7-air"

@@ -15,20 +15,26 @@ from triage_buddy.domain.triage import TriageService
 from triage_buddy.ports.llm import LLMProvider
 
 
-def build_provider(name: str = "mock") -> LLMProvider:
-    """Return an ``LLMProvider`` by name."""
+def build_provider(name: str = "mock", *, model: str | None = None) -> LLMProvider:
+    """Return an ``LLMProvider`` by name.
+
+    ``model`` overrides the chosen provider's default model id when given; when
+    omitted (None) the provider keeps its own default / env-var resolution, so
+    existing callers are unaffected.
+    """
+    kwargs = {"model": model} if model else {}
     if name == "mock":
         return MockLLMProvider()
     if name == "groq":
-        return GroqProvider()
+        return GroqProvider(**kwargs)
     if name == "gemini":
-        return GeminiProvider()
+        return GeminiProvider(**kwargs)
     if name == "zai":
-        return ZaiProvider()
+        return ZaiProvider(**kwargs)
     # Future: "anthropic", "openai", ... resolved here.
     raise ValueError(f"unknown LLM provider: {name!r}")
 
 
-def build_service(provider: str = "mock") -> TriageService:
+def build_service(provider: str = "mock", *, model: str | None = None) -> TriageService:
     """Wire a ``TriageService`` with the chosen provider adapter."""
-    return TriageService(llm=build_provider(provider))
+    return TriageService(llm=build_provider(provider, model=model))

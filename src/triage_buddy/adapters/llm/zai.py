@@ -22,7 +22,7 @@ from triage_buddy.adapters.llm._retry import (
 )
 from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse, RateLimitError
 
-DEFAULT_MODEL = "glm-4.6"
+DEFAULT_MODEL = "GLM-4.7-FlashX"
 
 
 def _is_quota_exhausted(exc: BaseException) -> bool:
@@ -48,7 +48,8 @@ class ZaiProvider:
     """``LLMProvider`` backed by Z.ai (Zhipu AI) GLM models.
 
     Args:
-        model: Z.ai model id. Defaults to ``glm-4.6``.
+        model: Z.ai model id. If omitted, falls back to the ``ZAI_MODEL``
+            environment variable, then to the hardcoded ``DEFAULT_MODEL``.
         api_key: Overrides the ``ZAI_API_KEY`` environment variable.
         temperature: Sampling temperature. Defaults to ``0`` for repeatable
             triage output.
@@ -64,7 +65,7 @@ class ZaiProvider:
     def __init__(
         self,
         *,
-        model: str = DEFAULT_MODEL,
+        model: str | None = None,
         api_key: str | None = None,
         temperature: float = 0.0,
         timeout: float = DEFAULT_TIMEOUT,
@@ -72,7 +73,7 @@ class ZaiProvider:
         retry_base_delay: float = DEFAULT_BASE_DELAY,
         client: object | None = None,
     ) -> None:
-        self._model = model
+        self._model = model or os.environ.get("ZAI_MODEL") or DEFAULT_MODEL
         self._temperature = temperature
         self._max_attempts = max_attempts
         self._retry_base_delay = retry_base_delay

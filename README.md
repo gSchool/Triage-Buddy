@@ -78,10 +78,10 @@ cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
 # put GEMINI_API_KEY in .env
 .venv/bin/triage-buddy --provider gemini "persistent cough and mild fever for three days"
 
-# Z.ai (glm-4.6)
+# Z.ai (GLM; model via --model or ZAI_MODEL)
 .venv/bin/python -m pip install -e ".[zai]"
 # put ZAI_API_KEY in .env
-.venv/bin/triage-buddy --provider zai "persistent cough and mild fever for three days"
+.venv/bin/triage-buddy --provider zai --model glm-4.7-air "persistent cough and mild fever for three days"
 ```
 
 Secrets load from a git-ignored `.env` in the repo root at startup (a real exported

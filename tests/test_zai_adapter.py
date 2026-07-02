@@ -38,7 +38,8 @@ def _request():
     return LLMRequest(system="sys", user="usr")
 
 
-def test_generate_sends_messages_and_returns_text():
+def test_generate_sends_messages_and_returns_text(monkeypatch):
+    monkeypatch.delenv("ZAI_MODEL", raising=False)
     payload = json.dumps({"urgency": "medium", "recommendation": "a", "disclaimer": "d"})
     provider = ZaiProvider(client=FakeClient(content=payload))
     response = provider.generate(_request())
@@ -54,8 +55,23 @@ def test_generate_sends_messages_and_returns_text():
     assert kwargs["thinking"] == {"type": "disabled"}
 
 
-def test_default_model_is_glm_4_6():
-    assert DEFAULT_MODEL == "glm-4.6"
+def test_default_model_used_when_no_env(monkeypatch):
+    # No explicit arg and no ZAI_MODEL -> the hardcoded DEFAULT_MODEL fallback.
+    monkeypatch.delenv("ZAI_MODEL", raising=False)
+    provider = ZaiProvider(client=FakeClient(content="{}"))
+    assert provider._model == DEFAULT_MODEL
+
+
+def test_env_var_overrides_default_model(monkeypatch):
+    monkeypatch.setenv("ZAI_MODEL", "glm-4.7-air")
+    provider = ZaiProvider(client=FakeClient(content="{}"))
+    assert provider._model == "glm-4.7-air"
+
+
+def test_explicit_model_arg_beats_env_var(monkeypatch):
+    monkeypatch.setenv("ZAI_MODEL", "glm-4.7-air")
+    provider = ZaiProvider(model="glm-9", client=FakeClient(content="{}"))
+    assert provider._model == "glm-9"
 
 
 def test_none_content_becomes_empty_string():

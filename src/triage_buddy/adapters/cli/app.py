@@ -38,6 +38,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default="mock",
         help="LLM provider adapter to use (default: mock).",
     )
+    parser.add_argument(
+        "--model",
+        default=None,
+        help="Override the provider's default model id (e.g. glm-4.7-air).",
+    )
     return parser
 
 
@@ -76,7 +81,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        service = build_service(provider=args.provider)
+        service = build_service(provider=args.provider, model=args.model)
     except (ValueError, LLMError) as exc:
         # ValueError: unknown provider name. LLMError: provider misconfigured
         # (e.g. missing API key). Both are setup problems, not triage outcomes.

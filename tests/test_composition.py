@@ -1,0 +1,33 @@
+"""Tests for the composition root: provider selection and model forwarding.
+
+Providers are stubbed so no API key is needed — these cover the wiring in
+``build_provider``/``build_service``, not provider behavior.
+"""
+
+from triage_buddy import composition
+
+
+def test_build_provider_forwards_model_when_given(monkeypatch):
+    captured = {}
+
+    def fake_zai(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(composition, "ZaiProvider", fake_zai)
+    composition.build_provider("zai", model="glm-9")
+    assert captured == {"model": "glm-9"}
+
+
+def test_build_provider_omits_model_when_none(monkeypatch):
+    # No --model: the provider keeps its own default / env-var resolution, so no
+    # model kwarg is forwarded.
+    captured = {}
+
+    def fake_zai(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(composition, "ZaiProvider", fake_zai)
+    composition.build_provider("zai")
+    assert captured == {}
