@@ -77,6 +77,11 @@ cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
 .venv/bin/python -m pip install -e ".[gemini]"
 # put GEMINI_API_KEY in .env
 .venv/bin/triage-buddy --provider gemini "persistent cough and mild fever for three days"
+
+# Z.ai (glm-4.6)
+.venv/bin/python -m pip install -e ".[zai]"
+# put ZAI_API_KEY in .env
+.venv/bin/triage-buddy --provider zai "persistent cough and mild fever for three days"
 ```
 
 Secrets load from a git-ignored `.env` in the repo root at startup (a real exported
@@ -125,7 +130,7 @@ as self-care"`) — not required substrings. Two kinds of check run per case:
 The judge defaults to `--provider` but can be set with `--judge-provider` (or
 `EVAL_JUDGE_PROVIDER`). Because grading needs real language understanding, the `mock`
 provider **cannot** judge — under `--provider mock`, grading is a hard error. In short:
-these cases score a *real* provider (`groq` / `gemini`, with a key set), not the
+these cases score a *real* provider (`groq` / `gemini` / `zai`, with a key set), not the
 offline mock. Note that scores vary run to run — the model is non-deterministic even
 at temperature 0, mostly on the urgency level.
 
@@ -140,7 +145,7 @@ domain/        core: escalation levels, red-flag safety, max-of-both triage rule
 ports/llm.py   the LLMProvider port (a generic text generate() contract)
 prompts.py     builds the request from a SymptomReport, parses the JSON reply
 adapters/
-  llm/         mock (default, offline), groq (Llama), gemini — behind the port
+  llm/         mock (default, offline), groq (Llama), gemini, zai (GLM) — behind the port
   cli/         CLI driving adapter
   web/         FastAPI app + Jinja2 template: form, JSON API, /healthz
 composition.py composition root — the only place concrete adapters are chosen

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from triage_buddy.adapters.llm.gemini import GeminiProvider
 from triage_buddy.adapters.llm.groq import GroqProvider
+from triage_buddy.adapters.llm.zai import ZaiProvider
 from triage_buddy.adapters.llm.mock import MockLLMProvider
 from triage_buddy.domain.triage import TriageService
 from triage_buddy.ports.llm import LLMProvider
@@ -22,6 +23,8 @@ def build_provider(name: str = "mock") -> LLMProvider:
         return GroqProvider()
     if name == "gemini":
         return GeminiProvider()
+    if name == "zai":
+        return ZaiProvider()
     # Future: "anthropic", "openai", ... resolved here.
     raise ValueError(f"unknown LLM provider: {name!r}")
 
