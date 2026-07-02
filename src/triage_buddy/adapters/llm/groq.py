@@ -29,7 +29,8 @@ class GroqProvider:
     """``LLMProvider`` backed by Groq-hosted Llama models.
 
     Args:
-        model: Groq model id. Defaults to ``llama-3.3-70b-versatile``.
+        model: Groq model id. If omitted, falls back to the ``TRIAGE_MODEL``
+            environment variable, then to the hardcoded ``DEFAULT_MODEL``.
         api_key: Overrides the ``GROQ_API_KEY`` environment variable.
         temperature: Sampling temperature. Defaults to ``0`` for repeatable
             triage output.
@@ -45,7 +46,7 @@ class GroqProvider:
     def __init__(
         self,
         *,
-        model: str = DEFAULT_MODEL,
+        model: str | None = None,
         api_key: str | None = None,
         temperature: float = 0.0,
         timeout: float = DEFAULT_TIMEOUT,
@@ -53,7 +54,7 @@ class GroqProvider:
         retry_base_delay: float = DEFAULT_BASE_DELAY,
         client: object | None = None,
     ) -> None:
-        self._model = model
+        self._model = model or os.environ.get("TRIAGE_MODEL") or DEFAULT_MODEL
         self._temperature = temperature
         self._max_attempts = max_attempts
         self._retry_base_delay = retry_base_delay

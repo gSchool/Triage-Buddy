@@ -62,6 +62,24 @@ def test_default_model_is_gemini_flash():
     assert DEFAULT_MODEL == "gemini-2.5-flash"
 
 
+def test_default_model_used_when_no_env(monkeypatch):
+    monkeypatch.delenv("TRIAGE_MODEL", raising=False)
+    provider = GeminiProvider(client=FakeClient(text="{}"))
+    assert provider._model == DEFAULT_MODEL
+
+
+def test_env_var_overrides_default_model(monkeypatch):
+    monkeypatch.setenv("TRIAGE_MODEL", "gemini-pro")
+    provider = GeminiProvider(client=FakeClient(text="{}"))
+    assert provider._model == "gemini-pro"
+
+
+def test_explicit_model_arg_beats_env_var(monkeypatch):
+    monkeypatch.setenv("TRIAGE_MODEL", "gemini-pro")
+    provider = GeminiProvider(model="custom-gemini", client=FakeClient(text="{}"))
+    assert provider._model == "custom-gemini"
+
+
 def test_none_text_becomes_empty_string():
     provider = GeminiProvider(client=FakeClient(text=None))
     assert provider.generate(_request()).text == ""

@@ -48,7 +48,7 @@ class ZaiProvider:
     """``LLMProvider`` backed by Z.ai (Zhipu AI) GLM models.
 
     Args:
-        model: Z.ai model id. If omitted, falls back to the ``ZAI_MODEL``
+        model: Z.ai model id. If omitted, falls back to the ``TRIAGE_MODEL``
             environment variable, then to the hardcoded ``DEFAULT_MODEL``.
         api_key: Overrides the ``ZAI_API_KEY`` environment variable.
         temperature: Sampling temperature. Defaults to ``0`` for repeatable
@@ -73,7 +73,7 @@ class ZaiProvider:
         retry_base_delay: float = DEFAULT_BASE_DELAY,
         client: object | None = None,
     ) -> None:
-        self._model = model or os.environ.get("ZAI_MODEL") or DEFAULT_MODEL
+        self._model = model or os.environ.get("TRIAGE_MODEL") or DEFAULT_MODEL
         self._temperature = temperature
         self._max_attempts = max_attempts
         self._retry_base_delay = retry_base_delay

@@ -78,7 +78,7 @@ cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
 # put GEMINI_API_KEY in .env
 .venv/bin/triage-buddy --provider gemini "persistent cough and mild fever for three days"
 
-# Z.ai (GLM; model via --model or ZAI_MODEL)
+# Z.ai (GLM; model via --model or TRIAGE_MODEL)
 .venv/bin/python -m pip install -e ".[zai]"
 # put ZAI_API_KEY in .env
 .venv/bin/triage-buddy --provider zai --model glm-4.7-air "persistent cough and mild fever for three days"

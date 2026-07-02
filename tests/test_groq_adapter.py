@@ -70,6 +70,24 @@ def test_default_model_is_llama_versatile():
     assert DEFAULT_MODEL == "llama-3.3-70b-versatile"
 
 
+def test_default_model_used_when_no_env(monkeypatch):
+    monkeypatch.delenv("TRIAGE_MODEL", raising=False)
+    provider = GroqProvider(client=FakeClient(content="{}"))
+    assert provider._model == DEFAULT_MODEL
+
+
+def test_env_var_overrides_default_model(monkeypatch):
+    monkeypatch.setenv("TRIAGE_MODEL", "llama-guard")
+    provider = GroqProvider(client=FakeClient(content="{}"))
+    assert provider._model == "llama-guard"
+
+
+def test_explicit_model_arg_beats_env_var(monkeypatch):
+    monkeypatch.setenv("TRIAGE_MODEL", "llama-guard")
+    provider = GroqProvider(model="custom-model", client=FakeClient(content="{}"))
+    assert provider._model == "custom-model"
+
+
 def test_none_content_becomes_empty_string():
     provider = GroqProvider(client=FakeClient(content=None))
     assert provider.generate(_request()).text == ""

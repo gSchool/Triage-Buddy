@@ -39,7 +39,7 @@ def _request():
 
 
 def test_generate_sends_messages_and_returns_text(monkeypatch):
-    monkeypatch.delenv("ZAI_MODEL", raising=False)
+    monkeypatch.delenv("TRIAGE_MODEL", raising=False)
     payload = json.dumps({"urgency": "medium", "recommendation": "a", "disclaimer": "d"})
     provider = ZaiProvider(client=FakeClient(content=payload))
     response = provider.generate(_request())
@@ -56,20 +56,20 @@ def test_generate_sends_messages_and_returns_text(monkeypatch):
 
 
 def test_default_model_used_when_no_env(monkeypatch):
-    # No explicit arg and no ZAI_MODEL -> the hardcoded DEFAULT_MODEL fallback.
-    monkeypatch.delenv("ZAI_MODEL", raising=False)
+    # No explicit arg and no TRIAGE_MODEL -> the hardcoded DEFAULT_MODEL fallback.
+    monkeypatch.delenv("TRIAGE_MODEL", raising=False)
     provider = ZaiProvider(client=FakeClient(content="{}"))
     assert provider._model == DEFAULT_MODEL
 
 
 def test_env_var_overrides_default_model(monkeypatch):
-    monkeypatch.setenv("ZAI_MODEL", "glm-4.7-air")
+    monkeypatch.setenv("TRIAGE_MODEL", "glm-4.7-air")
     provider = ZaiProvider(client=FakeClient(content="{}"))
     assert provider._model == "glm-4.7-air"
 
 
 def test_explicit_model_arg_beats_env_var(monkeypatch):
-    monkeypatch.setenv("ZAI_MODEL", "glm-4.7-air")
+    monkeypatch.setenv("TRIAGE_MODEL", "glm-4.7-air")
     provider = ZaiProvider(model="glm-9", client=FakeClient(content="{}"))
     assert provider._model == "glm-9"
 
