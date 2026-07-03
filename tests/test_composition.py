@@ -31,3 +31,15 @@ def test_build_provider_omits_model_when_none(monkeypatch):
     monkeypatch.setattr(composition, "ZaiProvider", fake_zai)
     composition.build_provider("zai")
     assert captured == {}
+
+
+def test_build_provider_resolves_labproxy(monkeypatch):
+    captured = {}
+
+    def fake_labproxy(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(composition, "LabProxyProvider", fake_labproxy)
+    composition.build_provider("labproxy", model="claude-sonnet-5")
+    assert captured == {"model": "claude-sonnet-5"}

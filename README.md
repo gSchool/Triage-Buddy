@@ -82,6 +82,13 @@ cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
 .venv/bin/python -m pip install -e ".[zai]"
 # put ZAI_API_KEY in .env
 .venv/bin/triage-buddy --provider zai --model glm-4.7-air "persistent cough and mild fever for three days"
+
+# labproxy — a classroom/lab proxy speaking the Anthropic /v1/messages shape.
+# Stdlib only, no extra install. Not a real Anthropic integration: it has no
+# real auth and may serve a different model than requested. Lab use only —
+# never send real patient input.
+# put LABPROXY_BASE_URL (and optionally LABPROXY_STUDENT_ID / LABPROXY_API_KEY) in .env
+.venv/bin/triage-buddy --provider labproxy "persistent cough and mild fever for three days"
 ```
 
 Secrets load from a git-ignored `.env` in the repo root at startup (a real exported
