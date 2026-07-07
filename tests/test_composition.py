@@ -43,3 +43,15 @@ def test_build_provider_resolves_labproxy(monkeypatch):
     monkeypatch.setattr(composition, "LabProxyProvider", fake_labproxy)
     composition.build_provider("labproxy", model="claude-sonnet-5")
     assert captured == {"model": "claude-sonnet-5"}
+
+
+def test_build_provider_resolves_ollama(monkeypatch):
+    captured = {}
+
+    def fake_ollama(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(composition, "OllamaProvider", fake_ollama)
+    composition.build_provider("ollama", model="gemma4")
+    assert captured == {"model": "gemma4"}

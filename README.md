@@ -89,6 +89,11 @@ cp .env.example .env          # then put GROQ_API_KEY in .env (git-ignored)
 # never send real patient input.
 # put LABPROXY_BASE_URL (and optionally LABPROXY_STUDENT_ID / LABPROXY_API_KEY) in .env
 .venv/bin/triage-buddy --provider labproxy "persistent cough and mild fever for three days"
+
+# Ollama — a local Ollama server (default http://localhost:11434). No key,
+# stdlib only. Requires `ollama serve` running with the model already pulled
+# (e.g. `ollama pull gemma4`); override with --model or TRIAGE_MODEL.
+.venv/bin/triage-buddy --provider ollama --model gemma4 "persistent cough and mild fever for three days"
 ```
 
 Secrets load from a git-ignored `.env` in the repo root at startup (a real exported
