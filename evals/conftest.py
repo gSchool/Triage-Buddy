@@ -6,7 +6,7 @@
 Each option falls back to an env var then a default (see the fixtures in
 ``test_cases.py``): ``--provider``→``EVAL_PROVIDER``→``mock``,
 ``--judge-provider``→``EVAL_JUDGE_PROVIDER``→``--provider``,
-``--samples``→``EVAL_SAMPLES``→``3``. This conftest is scoped to ``evals/`` so
+``--samples``→``EVAL_SAMPLES``→``1``. This conftest is scoped to ``evals/`` so
 the options don't appear on the main ``tests/`` run.
 """
 
@@ -36,7 +36,8 @@ def pytest_addoption(parser) -> None:
         default=None,
         help=(
             "How many times to run each case and majority-vote the urgency "
-            "(overrides EVAL_SAMPLES; default 3). The model is non-deterministic, "
-            "so voting over N full assessments gives a stabler score; 1 disables it."
+            "(overrides EVAL_SAMPLES; default 1, i.e. voting disabled). The model "
+            "is non-deterministic, so raising N gives a stabler score at the cost "
+            "of N full assessments per case."
         ),
     )

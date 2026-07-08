@@ -70,12 +70,12 @@ def _judge_provider_name(request) -> str:
 
 
 def _samples_count(request) -> int:
-    """How many times to run each case: --samples, EVAL_SAMPLES, then 3."""
+    """How many times to run each case: --samples, EVAL_SAMPLES, then 1."""
     opt = request.config.getoption("--samples")
     if opt is not None:
         return opt
     env = os.environ.get("EVAL_SAMPLES")
-    return int(env) if env else 3
+    return int(env) if env else 1
 
 
 @pytest.fixture(scope="module")
