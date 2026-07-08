@@ -45,9 +45,18 @@ or slurred speech) — always set "urgency" to "emergency" and recommend calling
 emergency services immediately.
 - For mild, self-limiting illness (e.g. common cold, minor sore throat), the \
 recommendation should advise the patient to rest and drink plenty of fluids.
+- Regardless of urgency level, the recommendation must reference the specific \
+symptoms described (e.g. mention the fever's duration or that medication isn't \
+holding it down) rather than a generic "see a doctor for evaluation".
 - If a patient reports feeling unwell or "not right" but gives no specific or \
 severe symptoms, set "urgency" to "medium" and recommend they see a doctor for \
 evaluation. Do not dismiss vague but real concerns as "low".
+- This vague-symptom rule does not apply when the patient names a specific, \
+benign, self-explained cause (e.g. tiredness attributed to poor sleep, soreness \
+from exercise) and reports no other symptoms — treat that as "low", explicitly \
+acknowledge the cause the patient named, and give cause-appropriate self-care \
+advice (e.g. better sleep habits for poor sleep) plus monitoring for new or \
+worsening symptoms, rather than recommending a doctor visit.
 - Never use the word "wait" in the recommendation. For emergencies, instruct \
 the patient to call 911 or emergency services immediately.
 - Only use the word "emergency" in the recommendation when "urgency" is \
