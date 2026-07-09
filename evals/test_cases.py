@@ -146,16 +146,17 @@ def judge(request):
 
 
 def _advice_text(assessment: TriageAssessment) -> str:
-    """The model's user-visible advice, for the judge to grade.
+    """The model's user-visible reasoning + advice, for the judge to grade.
 
-    Only ``advice`` (the parsed ``recommendation`` field) is graded: it's the
-    only field carrying model-specific content. ``rationale`` is a synthesized,
-    boilerplate sentence templated from the level (see ``prompts.parse_draft``)
-    — the model is never asked for one — so including it would only dilute the
-    judge's signal with fixed text. The standing ``disclaimer`` is excluded for
-    the same reason: it's fixed boilerplate, not the model's judgment.
+    Both ``rationale`` (why this urgency) and ``advice`` (the ``recommendation``
+    field — what to do) carry model-specific content, and the model chooses
+    freely how to split symptom-specific justification between them. Grading them
+    together means a rubric passes whether the model put the critical detail in
+    the rationale or the recommendation, removing a source of flaky failures. The
+    standing ``disclaimer`` is excluded: it's fixed boilerplate, not the model's
+    judgment.
     """
-    return assessment.advice.strip()
+    return f"{assessment.rationale.strip()}\n{assessment.advice.strip()}".strip()
 
 
 # Parametrize over the cases, labelling each subtest by its case id.

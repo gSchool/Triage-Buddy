@@ -14,11 +14,28 @@ def test_build_request_carries_description_and_system_prompt():
 
 def test_parse_draft_plain_json():
     text = json.dumps(
-        {"urgency": "medium", "recommendation": "see a doctor", "disclaimer": "d"}
+        {
+            "urgency": "medium",
+            "rationale": "your cough has lasted three days",
+            "recommendation": "see a doctor",
+            "disclaimer": "d",
+        }
     )
     draft = parse_draft(text)
     assert draft.level is EscalationLevel.MEDIUM
+    assert draft.rationale == "your cough has lasted three days"
     assert draft.advice == "see a doctor"
+
+
+def test_parse_draft_synthesizes_rationale_when_omitted():
+    # rationale is optional; an omitted (or empty) one falls back to a generic,
+    # level-derived sentence so the draft is always complete.
+    text = json.dumps({"urgency": "low", "recommendation": "rest"})
+    draft = parse_draft(text)
+    assert draft.rationale == "The described symptoms suggest a low urgency level of care."
+
+    empty = json.dumps({"urgency": "low", "rationale": "  ", "recommendation": "rest"})
+    assert parse_draft(empty).rationale == draft.rationale
 
 
 @pytest.mark.parametrize(
