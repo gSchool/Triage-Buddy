@@ -11,6 +11,7 @@ from triage_buddy.adapters.llm.gemini import GeminiProvider
 from triage_buddy.adapters.llm.groq import GroqProvider
 from triage_buddy.adapters.llm.labproxy import LabProxyProvider
 from triage_buddy.adapters.llm.ollama import OllamaProvider
+from triage_buddy.adapters.llm.openrouter import OpenRouterProvider
 from triage_buddy.adapters.llm.zai import ZaiProvider
 from triage_buddy.adapters.llm.mock import MockLLMProvider
 from triage_buddy.domain.triage import TriageService
@@ -37,6 +38,8 @@ def build_provider(name: str = "mock", *, model: str | None = None) -> LLMProvid
         return LabProxyProvider(**kwargs)
     if name == "ollama":
         return OllamaProvider(**kwargs)
+    if name == "openrouter":
+        return OpenRouterProvider(**kwargs)
     # Future: "anthropic", "openai", ... resolved here.
     raise ValueError(f"unknown LLM provider: {name!r}")
 

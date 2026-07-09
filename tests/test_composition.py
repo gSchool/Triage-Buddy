@@ -55,3 +55,15 @@ def test_build_provider_resolves_ollama(monkeypatch):
     monkeypatch.setattr(composition, "OllamaProvider", fake_ollama)
     composition.build_provider("ollama", model="gemma4")
     assert captured == {"model": "gemma4"}
+
+
+def test_build_provider_resolves_openrouter(monkeypatch):
+    captured = {}
+
+    def fake_openrouter(**kwargs):
+        captured.update(kwargs)
+        return object()
+
+    monkeypatch.setattr(composition, "OpenRouterProvider", fake_openrouter)
+    composition.build_provider("openrouter", model="deepseek/deepseek-v4-flash")
+    assert captured == {"model": "deepseek/deepseek-v4-flash"}

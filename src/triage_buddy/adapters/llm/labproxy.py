@@ -18,10 +18,10 @@ from __future__ import annotations
 
 import json
 import os
-import ssl
 import urllib.error
 import urllib.request
 
+from triage_buddy.adapters.llm._http import default_opener
 from triage_buddy.adapters.llm._retry import (
     DEFAULT_ATTEMPTS,
     DEFAULT_BASE_DELAY,
@@ -34,26 +34,6 @@ from triage_buddy.ports.llm import LLMError, LLMRequest, LLMResponse, RateLimitE
 DEFAULT_MODEL = "claude-sonnet-4-6"  # ignored server-side by the observed proxy; kept for portability
 DEFAULT_API_KEY = "lab"
 ANTHROPIC_VERSION = "2023-06-01"
-
-
-def _default_opener():
-    """Build a urlopen-like callable, using certifi's CA bundle if available.
-
-    Some Python installs (notably python.org's on macOS) ship without a wired
-    system CA bundle, so stdlib ``ssl``/``urllib`` fail to verify otherwise-valid
-    certificates (e.g. an ngrok tunnel's). ``certifi`` is not a declared
-    dependency of this project — it's only used here, opportunistically, if
-    something else already pulled it into the environment. Falls back to
-    ``urllib.request.urlopen``'s own default verification otherwise.
-    """
-    try:
-        import certifi
-    except ImportError:
-        return urllib.request.urlopen
-
-    context = ssl.create_default_context(cafile=certifi.where())
-    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=context))
-    return opener.open
 
 
 class LabProxyProvider:
@@ -113,7 +93,7 @@ class LabProxyProvider:
         self._timeout = timeout
         self._max_attempts = max_attempts
         self._retry_base_delay = retry_base_delay
-        self._opener = opener or _default_opener()
+        self._opener = opener or default_opener()
 
     def _post(self, payload: dict, *, max_tokens: int) -> dict:
         body = json.dumps({**payload, "max_tokens": max_tokens}).encode()
